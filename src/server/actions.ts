@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/server/db";
-import { brands, projects } from "@/server/db/schema";
+import { brands, projects, memberships, threads, type Role } from "@/server/db/schema";
 import { ensureOrgForUser } from "@/server/orgs";
-import { brandRole, roleAtLeast } from "@/server/auth/access";
+import { brandRole, roleAtLeast, projectRole } from "@/server/auth/access";
+import { createThreadForUser } from "@/server/threads";
 import { slugify } from "@/lib/slug";
 
 async function requireUserId(): Promise<string> {
@@ -69,4 +70,96 @@ export async function deleteProject(formData: FormData): Promise<void> {
     .delete(projects)
     .where(and(eq(projects.id, projectId), eq(projects.brandId, brandId)));
   revalidatePath(`/brands/${brandId}`);
+}
+
+/** Roles an org owner/admin may hand out via an invite. `owner` is org-only. */
+const INVITABLE_ROLES: Role[] = ["admin", "editor", "viewer", "client"];
+
+/**
+ * Invite someone to a brand by email. Admin+ on the brand. Creates a pending
+ * membership keyed on the (lowercased) email; it activates when they sign in
+ * (see `activatePendingInvites`). Re-inviting an existing member is a no-op.
+ */
+export async function inviteMember(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const brandId = String(formData.get("brandId") ?? "");
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+  const role = String(formData.get("role") ?? "") as Role;
+  if (!brandId || !email || !email.includes("@")) return;
+  if (!INVITABLE_ROLES.includes(role)) return;
+
+  const callerRole = await brandRole(userId, brandId);
+  if (!roleAtLeast(callerRole, "admin")) return;
+
+  // Don't stack a duplicate row for the same person on the same brand.
+  const existing = await db.query.memberships.findFirst({
+    where: and(
+      eq(memberships.scopeType, "brand"),
+      eq(memberships.scopeId, brandId),
+      eq(memberships.email, email),
+    ),
+    columns: { id: true },
+  });
+  if (existing) return;
+
+  await db.insert(memberships).values({
+    scopeType: "brand",
+    scopeId: brandId,
+    email,
+    role,
+    status: "pending",
+  });
+  revalidatePath(`/brands/${brandId}`);
+}
+
+/** Remove a member or revoke a pending invite. Admin+ on the brand. */
+export async function removeMember(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const membershipId = String(formData.get("membershipId") ?? "");
+  const brandId = String(formData.get("brandId") ?? "");
+  if (!membershipId || !brandId) return;
+
+  const callerRole = await brandRole(userId, brandId);
+  if (!roleAtLeast(callerRole, "admin")) return;
+
+  await db
+    .delete(memberships)
+    .where(
+      and(
+        eq(memberships.id, membershipId),
+        eq(memberships.scopeType, "brand"),
+        eq(memberships.scopeId, brandId),
+      ),
+    );
+  revalidatePath(`/brands/${brandId}`);
+}
+
+/** Start a new chat thread in a project, then open it. Editor+ on the project. */
+export async function createChatThread(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!projectId) return;
+
+  const threadId = await createThreadForUser(userId, projectId);
+  if (!threadId) return; // under-privileged or missing project — silent no-op
+  revalidatePath(`/projects/${projectId}`);
+  redirect(`/projects/${projectId}?thread=${threadId}`);
+}
+
+/** Delete a chat thread (and its messages, via FK cascade). Editor+ on the project. */
+export async function deleteChatThread(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const threadId = String(formData.get("threadId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!threadId || !projectId) return;
+
+  const role = await projectRole(userId, projectId);
+  if (!roleAtLeast(role, "editor")) return;
+
+  await db
+    .delete(threads)
+    .where(and(eq(threads.id, threadId), eq(threads.projectId, projectId)));
+  revalidatePath(`/projects/${projectId}`);
 }

@@ -1,26 +1,256 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * MarketCall — "Studio" design language.
+ * Warm editorial calm: paper-light surfaces, ink text, a single clay accent,
+ * soft elevation instead of hard borders. Tokens drive everything so the whole
+ * app stays cohesive.
+ */
+@theme {
+  --color-paper: #f4f1ea; /* app background (warm) */
+  --color-surface: #fcfbf8; /* cards, panels */
+  --color-surface-2: #efeae0; /* insets, subtle fills */
+  --color-ink: #221d18; /* primary text (warm near-black) */
+  --color-ink-soft: #6b6358; /* secondary text */
+  --color-muted: #a59c8e; /* tertiary text, hints */
+  --color-line: #e7e1d6; /* hairline borders */
+  --color-line-strong: #dad2c4;
+  --color-accent: #b85c38; /* clay */
+  --color-accent-hover: #9f4e2e;
+  --color-accent-soft: #f2e6dc; /* tint for active/badges */
+  --color-accent-ink: #fbf7f2; /* text on accent */
+  --color-danger: #b23a48;
+  --color-danger-soft: #f4e3e2;
+  --color-success: #3e7c5a;
+  --color-success-soft: #e4eee7;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-hanken);
   --font-mono: var(--font-geist-mono);
+
+  --shadow-xs: 0 1px 2px rgba(33, 29, 24, 0.05);
+  --shadow-sm: 0 1px 3px rgba(33, 29, 24, 0.06), 0 1px 2px rgba(33, 29, 24, 0.04);
+  --shadow-md: 0 10px 34px -14px rgba(33, 29, 24, 0.2);
+  --shadow-lg: 0 28px 64px -28px rgba(33, 29, 24, 0.32);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-paper);
+  background-image: radial-gradient(
+    130% 120% at 100% 0%,
+    #f9f6f0 0%,
+    #f4f1ea 42%,
+    #efe9df 100%
+  );
+  background-attachment: fixed;
+  color: var(--color-ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+}
+
+/* Light, slim scrollbars — no heavy arrow buttons. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-line-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-muted);
+}
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Distinctive display type for headings + the wordmark. */
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+@layer components {
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .surface-inset {
+    background: var(--color-surface-2);
+    border-radius: 14px;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 10px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease,
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      transform 0.05s ease;
+    cursor: pointer;
+  }
+  .btn:active {
+    transform: translateY(0.5px);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .btn-primary {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    box-shadow: var(--shadow-xs);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-ink-soft);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--color-surface-2);
+    color: var(--color-ink);
+  }
+
+  .btn-outline {
+    background: var(--color-surface);
+    color: var(--color-ink);
+    border: 1px solid var(--color-line-strong);
+  }
+  .btn-outline:hover:not(:disabled) {
+    border-color: var(--color-ink-soft);
+  }
+
+  /* Form controls */
+  .input {
+    width: 100%;
+    background: var(--color-surface);
+    border: 1px solid var(--color-line-strong);
+    border-radius: 10px;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-ink);
+    outline: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  .input::placeholder {
+    color: var(--color-muted);
+  }
+  .input:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
+  }
+
+  /* Pills + badges */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid var(--color-line-strong);
+    padding: 0.3rem 0.7rem;
+    font-size: 0.75rem;
+    color: var(--color-ink-soft);
+    background: var(--color-surface);
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease,
+      background-color 0.15s ease;
+    cursor: pointer;
+  }
+  .chip:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent-hover);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 500;
+    border: 1px solid var(--color-line-strong);
+    color: var(--color-ink-soft);
+  }
+  .badge-accent {
+    background: var(--color-accent-soft);
+    border-color: transparent;
+    color: var(--color-accent-hover);
+  }
+  .badge-success {
+    background: var(--color-success-soft);
+    border-color: transparent;
+    color: var(--color-success);
+  }
+
+  .label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+}
+
+/* Gentle entrance for primary content. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
 }

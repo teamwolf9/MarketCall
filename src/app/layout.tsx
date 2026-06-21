@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Hanken_Grotesk, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Display: an optical serif with warmth — the wordmark + headings.
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+});
+
+// UI/body: a friendly, readable grotesque.
+const hanken = Hanken_Grotesk({
+  variable: "--font-hanken",
   subsets: ["latin"],
 });
 
@@ -27,11 +34,10 @@ export default function RootLayout({
     <ClerkProvider>
       <html
         lang="en"
-        className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+        className={`${fraunces.variable} ${hanken.variable} ${geistMono.variable} h-full`}
       >
-        <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
-          {children}
-        </body>
+        {/* App shell: the viewport never scrolls — inner panels do. */}
+        <body className="flex h-full flex-col overflow-hidden">{children}</body>
       </html>
     </ClerkProvider>
   );

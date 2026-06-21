@@ -155,3 +155,37 @@ export async function reachableBrandIds(userId: string): Promise<string[]> {
     ]),
   ];
 }
+
+/**
+ * Every project a user can reach: all projects inside their reachable brands,
+ * plus any project they're a direct member of. Used to scope the calendar,
+ * which spans projects.
+ */
+export async function reachableProjectIds(userId: string): Promise<string[]> {
+  const brandIds = await reachableBrandIds(userId);
+
+  const underBrands = brandIds.length
+    ? await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(inArray(projects.brandId, brandIds))
+    : [];
+
+  const directProjects = await db
+    .select({ scopeId: memberships.scopeId })
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.userId, userId),
+        eq(memberships.status, "active"),
+        eq(memberships.scopeType, "project"),
+      ),
+    );
+
+  return [
+    ...new Set([
+      ...underBrands.map((p) => p.id),
+      ...directProjects.map((m) => m.scopeId),
+    ]),
+  ];
+}

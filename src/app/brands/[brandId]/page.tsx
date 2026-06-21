@@ -2,8 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
+import { GlobalLinks } from "@/app/nav";
 import { getBrandForUser, listProjectsForBrand } from "@/server/queries";
-import { createProject, deleteProject } from "@/server/actions";
+import {
+  createProject,
+  deleteProject,
+  inviteMember,
+  removeMember,
+} from "@/server/actions";
+import { listScopeMembers } from "@/server/memberships";
+import { roleAtLeast } from "@/server/auth/access";
 
 export default async function BrandPage({
   params,
@@ -19,73 +27,170 @@ export default async function BrandPage({
   if (!ctx) notFound();
   const { brand, role } = ctx;
   const projects = (await listProjectsForBrand(userId, brandId)) ?? [];
+  const members = await listScopeMembers("brand", brand.id);
+  const canManage = roleAtLeast(role, "admin");
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-neutral-800 px-6 py-4">
-        <Link href="/" className="text-sm text-neutral-400 hover:text-neutral-100">
-          ← Brands
-        </Link>
-        <UserButton />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <header className="border-b border-line">
+        <div className="mx-auto flex w-full max-w-4xl items-center justify-between px-6 py-4">
+          <nav className="flex items-center gap-2 text-sm">
+            <Link href="/" className="text-ink-soft transition-colors hover:text-ink">
+              Brands
+            </Link>
+            <span className="text-line-strong">/</span>
+            <span className="text-ink">{brand.name}</span>
+          </nav>
+          <div className="flex items-center gap-4">
+            <GlobalLinks />
+            <UserButton />
+          </div>
+        </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-12">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-semibold">{brand.name}</h1>
-          <span className="rounded-full border border-neutral-700 px-2 py-0.5 text-xs text-neutral-400">
-            {role}
-          </span>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <main className="rise mx-auto w-full max-w-4xl px-6 py-12">
+        <div className="flex items-center gap-3">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
+            {brand.name}
+          </h1>
+          <span className="badge">{role}</span>
         </div>
-        <p className="mt-2 text-neutral-400">Projects under this brand.</p>
+        <p className="mt-2 text-[15px] text-ink-soft">
+          Projects under this brand. Open one to work with the assistant.
+        </p>
 
-        <section className="mt-8">
-          <form action={createProject} className="flex gap-2">
+        {/* Projects */}
+        <section className="mt-10">
+          <span className="label">Projects</span>
+
+          <form action={createProject} className="mt-4 flex gap-2">
             <input type="hidden" name="brandId" value={brand.id} />
             <input
               name="name"
               required
               placeholder="New project name…"
-              className="flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-neutral-500"
+              className="input flex-1"
             />
-            <button
-              type="submit"
-              className="rounded-md bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-white"
-            >
-              Create
+            <button type="submit" className="btn btn-primary whitespace-nowrap">
+              Create project
             </button>
           </form>
 
           {projects.length === 0 ? (
-            <div className="mt-4 rounded-lg border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-500">
+            <div className="mt-6 rounded-2xl border border-dashed border-line-strong bg-surface/50 p-12 text-center text-sm text-ink-soft">
               No projects yet.
             </div>
           ) : (
-            <ul className="mt-4 divide-y divide-neutral-800 rounded-lg border border-neutral-800">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               {projects.map((p) => (
-                <li
+                <div
                   key={p.id}
+                  className="group relative card p-5 transition-shadow hover:shadow-md"
+                >
+                  <Link href={`/projects/${p.id}`} className="block">
+                    <div className="font-display text-lg font-semibold text-ink">
+                      {p.name}
+                    </div>
+                    <div className="mt-1 font-mono text-xs text-muted">
+                      /{p.slug}
+                    </div>
+                    <div className="mt-6 inline-flex items-center gap-1 text-sm text-accent">
+                      Open chat
+                      <span className="transition-transform group-hover:translate-x-0.5">
+                        →
+                      </span>
+                    </div>
+                  </Link>
+                  <form
+                    action={deleteProject}
+                    className="absolute right-3 top-3 opacity-0 transition group-hover:opacity-100"
+                  >
+                    <input type="hidden" name="projectId" value={p.id} />
+                    <input type="hidden" name="brandId" value={brand.id} />
+                    <button
+                      type="submit"
+                      className="rounded-md px-2 py-1 text-xs text-muted hover:text-danger"
+                    >
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Members */}
+        <section className="mt-14">
+          <span className="label">Members</span>
+          <p className="mt-1 text-sm text-ink-soft">
+            People here cascade down to every project inside the brand.
+          </p>
+
+          {canManage && (
+            <form action={inviteMember} className="mt-4 flex flex-wrap gap-2">
+              <input type="hidden" name="brandId" value={brand.id} />
+              <input
+                name="email"
+                type="email"
+                required
+                placeholder="teammate@email.com"
+                className="input flex-1"
+              />
+              <select name="role" defaultValue="editor" className="input w-auto">
+                <option value="admin">admin</option>
+                <option value="editor">editor</option>
+                <option value="viewer">viewer</option>
+                <option value="client">client</option>
+              </select>
+              <button type="submit" className="btn btn-outline whitespace-nowrap">
+                Send invite
+              </button>
+            </form>
+          )}
+
+          {members.length === 0 ? (
+            <div className="mt-4 rounded-2xl border border-dashed border-line-strong bg-surface/50 p-10 text-center text-sm text-ink-soft">
+              No members yet. The org owner has full access by default.
+            </div>
+          ) : (
+            <ul className="card mt-4 divide-y divide-line">
+              {members.map((m) => (
+                <li
+                  key={m.id}
                   className="flex items-center justify-between px-4 py-3"
                 >
-                  <span className="font-medium">{p.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-ink">
+                      {m.email ?? m.userId ?? "—"}
+                    </span>
+                    {m.status === "pending" && (
+                      <span className="badge">pending</span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-neutral-600">/{p.slug}</span>
-                    <form action={deleteProject}>
-                      <input type="hidden" name="projectId" value={p.id} />
-                      <input type="hidden" name="brandId" value={brand.id} />
-                      <button
-                        type="submit"
-                        className="text-xs text-neutral-500 hover:text-red-400"
-                      >
-                        Delete
-                      </button>
-                    </form>
+                    <span className="badge">{m.role}</span>
+                    {canManage && (
+                      <form action={removeMember}>
+                        <input type="hidden" name="membershipId" value={m.id} />
+                        <input type="hidden" name="brandId" value={brand.id} />
+                        <button
+                          type="submit"
+                          className="text-xs text-muted hover:text-danger"
+                        >
+                          Remove
+                        </button>
+                      </form>
+                    )}
                   </div>
                 </li>
               ))}
             </ul>
           )}
         </section>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,88 +1,101 @@
 import Link from "next/link";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { UserButton } from "@clerk/nextjs";
+import { TopNav } from "@/app/nav";
 import { listBrandsForUser } from "@/server/queries";
 import { createBrand, deleteBrand } from "@/server/actions";
+import { activatePendingInvites } from "@/server/memberships";
 
 export default async function Home() {
   const { userId } = await auth();
   const user = userId ? await currentUser() : null;
+
+  // First stop after sign-in: bind any invites sent to this person's email.
+  if (userId && user) {
+    await activatePendingInvites(userId, user.primaryEmailAddress?.emailAddress);
+  }
+
   const brands = userId ? await listBrandsForUser(userId) : [];
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-neutral-800 px-6 py-4">
-        <div className="flex items-baseline gap-2">
-          <span className="text-lg font-semibold tracking-tight">MarketCall</span>
-          <span className="text-xs text-neutral-500">marketing ops, by chat</span>
-        </div>
-        <UserButton />
-      </header>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <TopNav active="brands" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-12">
-        <h1 className="text-2xl font-semibold">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <main className="rise mx-auto w-full max-w-5xl px-6 py-12">
+        <h1 className="font-display text-4xl font-semibold tracking-tight text-ink">
           Welcome{user?.firstName ? `, ${user.firstName}` : ""}.
         </h1>
-        <p className="mt-2 text-neutral-400">
-          Your brands live here. Each brand holds projects; access cascades from
-          brand down to every project inside it.
+        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-soft">
+          Your brands live here. Each holds its own projects, and access cascades
+          from a brand down to every project inside it.
         </p>
 
         <section className="mt-10">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-neutral-500">
-            Brands
-          </h2>
+          <div className="flex items-center justify-between">
+            <span className="label">Brands</span>
+            <span className="text-xs text-muted">
+              {brands.length} {brands.length === 1 ? "brand" : "brands"}
+            </span>
+          </div>
 
           <form action={createBrand} className="mt-4 flex gap-2">
             <input
               name="name"
               required
               placeholder="New brand name…"
-              className="flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-neutral-500"
+              className="input flex-1"
             />
-            <button
-              type="submit"
-              className="rounded-md bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-white"
-            >
-              Create
+            <button type="submit" className="btn btn-primary whitespace-nowrap">
+              Create brand
             </button>
           </form>
 
           {brands.length === 0 ? (
-            <div className="mt-4 rounded-lg border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-500">
-              No brands yet. Create your first brand to start a project under it.
+            <div className="mt-6 rounded-2xl border border-dashed border-line-strong bg-surface/50 p-12 text-center">
+              <p className="text-sm text-ink-soft">
+                No brands yet. Create your first brand to start a project under it.
+              </p>
             </div>
           ) : (
-            <ul className="mt-4 divide-y divide-neutral-800 rounded-lg border border-neutral-800">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {brands.map((b) => (
-                <li
+                <div
                   key={b.id}
-                  className="flex items-center justify-between px-4 py-3"
+                  className="group relative card p-5 transition-shadow hover:shadow-md"
                 >
-                  <Link
-                    href={`/brands/${b.id}`}
-                    className="font-medium hover:underline"
-                  >
-                    {b.name}
+                  <Link href={`/brands/${b.id}`} className="block">
+                    <div className="font-display text-lg font-semibold text-ink">
+                      {b.name}
+                    </div>
+                    <div className="mt-1 font-mono text-xs text-muted">
+                      /{b.slug}
+                    </div>
+                    <div className="mt-6 inline-flex items-center gap-1 text-sm text-accent">
+                      Open
+                      <span className="transition-transform group-hover:translate-x-0.5">
+                        →
+                      </span>
+                    </div>
                   </Link>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-neutral-600">/{b.slug}</span>
-                    <form action={deleteBrand}>
-                      <input type="hidden" name="brandId" value={b.id} />
-                      <button
-                        type="submit"
-                        className="text-xs text-neutral-500 hover:text-red-400"
-                      >
-                        Delete
-                      </button>
-                    </form>
-                  </div>
-                </li>
+                  <form
+                    action={deleteBrand}
+                    className="absolute right-3 top-3 opacity-0 transition group-hover:opacity-100"
+                  >
+                    <input type="hidden" name="brandId" value={b.id} />
+                    <button
+                      type="submit"
+                      className="rounded-md px-2 py-1 text-xs text-muted hover:text-danger"
+                    >
+                      Delete
+                    </button>
+                  </form>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </section>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
