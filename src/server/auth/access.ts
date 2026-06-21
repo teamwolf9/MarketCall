@@ -29,6 +29,11 @@ export function higherRole(a: Role, b: Role): Role {
   return ROLE_RANK[a] >= ROLE_RANK[b] ? a : b;
 }
 
+/** True when `role` meets or exceeds `min`. Used to gate mutations. */
+export function roleAtLeast(role: Role | null, min: Role): boolean {
+  return role !== null && ROLE_RANK[role] >= ROLE_RANK[min];
+}
+
 async function activeMembership(
   userId: string,
   scopeType: "brand" | "project",
