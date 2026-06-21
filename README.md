@@ -59,6 +59,9 @@ You'll need a [Clerk](https://clerk.com) application (publishable + secret keys)
 and a Postgres database ([Supabase](https://supabase.com) or
 [Neon](https://neon.tech)). Drop both into `.env.local`.
 
+**Moving to another machine (Windows + VS Code)?** Follow
+[`docs/SETUP.md`](docs/SETUP.md) — step-by-step clone-to-running guide.
+
 ## Scripts
 
 | Script             | What it does                          |
