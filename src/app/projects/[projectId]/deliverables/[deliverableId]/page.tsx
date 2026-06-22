@@ -6,9 +6,11 @@ import { listShareLinks, isLinkLive } from "@/server/sharing";
 import { getIntakeAnswers, intakeStats } from "@/server/intake/intake";
 import { roleAtLeast } from "@/server/auth/access";
 import { removeDeliverable } from "@/server/actions";
+import { kindLabel } from "@/lib/deliverables";
 import { ProjectHeader } from "../../project-header";
 import { SharePanel } from "./share-panel";
 import { ShareActions } from "@/app/_components/share-actions";
+import { Markdown } from "@/app/_components/markdown";
 import { DeliverableEditor } from "./deliverable-editor";
 
 export default async function DeliverablePage({
@@ -52,22 +54,35 @@ export default async function DeliverablePage({
           >
             ← Deliverables
           </Link>
-          <ShareActions
-            title={deliverable.title}
-            content={deliverable.content}
-            showPdf={false}
-          />
+          <ShareActions title={deliverable.title} content={deliverable.content} />
         </div>
 
         <div className="mt-4">
-          <DeliverableEditor
-            deliverableId={deliverable.id}
-            projectId={project.id}
-            initialTitle={deliverable.title}
-            initialKind={deliverable.kind}
-            initialContent={deliverable.content}
-            canEdit={canEdit}
-          />
+          {canEdit ? (
+            <DeliverableEditor
+              deliverableId={deliverable.id}
+              projectId={project.id}
+              initialTitle={deliverable.title}
+              initialKind={deliverable.kind}
+              initialContent={deliverable.content}
+            />
+          ) : (
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
+                  {deliverable.title}
+                </h1>
+                <span className="badge">{kindLabel(deliverable.kind)}</span>
+              </div>
+              <div className="card mt-5 p-7 sm:p-9">
+                {deliverable.content ? (
+                  <Markdown>{deliverable.content}</Markdown>
+                ) : (
+                  <p className="text-sm text-muted">This deliverable is empty.</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {canEdit && (
