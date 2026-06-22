@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { resolvePublicDeliverable } from "@/server/sharing";
 import { kindLabel } from "@/lib/deliverables";
 import { ShareActions } from "@/app/_components/share-actions";
+import { Markdown } from "@/app/_components/markdown";
 
 // Shared links must never be indexed by search engines.
 export const metadata: Metadata = {
@@ -39,8 +40,10 @@ export default async function SharedDeliverablePage({
           </div>
         </header>
 
-        <article className="mt-8 whitespace-pre-wrap text-[15px] leading-relaxed text-ink">
-          {deliverable.content || (
+        <article className="mt-8">
+          {deliverable.content ? (
+            <Markdown>{deliverable.content}</Markdown>
+          ) : (
             <span className="text-muted">This deliverable is empty.</span>
           )}
         </article>

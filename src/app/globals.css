@@ -279,6 +279,129 @@ body {
   }
 }
 
+/*
+ * Rendered markdown document — the formatted view of a deliverable. Tuned to the
+ * warm palette; serif display headings, comfortable measure, clean tables.
+ */
+.doc {
+  color: var(--color-ink);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+.doc > :first-child {
+  margin-top: 0;
+}
+.doc h1,
+.doc h2,
+.doc h3,
+.doc h4 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+  line-height: 1.25;
+}
+.doc h1 {
+  font-size: 1.9rem;
+  margin: 0 0 0.6em;
+}
+.doc h2 {
+  font-size: 1.45rem;
+  margin: 1.6em 0 0.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--color-line);
+}
+.doc h3 {
+  font-size: 1.18rem;
+  margin: 1.4em 0 0.4em;
+}
+.doc h4 {
+  font-size: 1rem;
+  margin: 1.2em 0 0.3em;
+}
+.doc p {
+  margin: 0.85em 0;
+}
+.doc a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.doc strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.doc ul,
+.doc ol {
+  margin: 0.85em 0;
+  padding-left: 1.4em;
+}
+.doc ul {
+  list-style: disc;
+}
+.doc ol {
+  list-style: decimal;
+}
+.doc li {
+  margin: 0.3em 0;
+}
+.doc li::marker {
+  color: var(--color-muted);
+}
+.doc blockquote {
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  border-left: 3px solid var(--color-accent);
+  color: var(--color-ink-soft);
+}
+.doc code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.85em;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-line);
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+}
+.doc pre {
+  margin: 1em 0;
+  padding: 1em;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+.doc pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.85rem;
+}
+.doc hr {
+  margin: 1.8em 0;
+  border: 0;
+  border-top: 1px solid var(--color-line);
+}
+.doc table {
+  width: 100%;
+  margin: 1em 0;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.doc th,
+.doc td {
+  border: 1px solid var(--color-line);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.doc th {
+  background: var(--color-surface-2);
+  font-weight: 600;
+}
+.doc img {
+  max-width: 100%;
+  border-radius: 10px;
+}
+
 /* Blur-up entrance for primary content — the app's motion signature, shared
  * with the landing so the whole product feels of a piece. */
 @keyframes rise {

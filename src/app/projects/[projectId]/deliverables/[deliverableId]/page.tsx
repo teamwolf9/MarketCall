@@ -5,11 +5,11 @@ import { getDeliverableForUser } from "@/server/deliverables";
 import { listShareLinks, isLinkLive } from "@/server/sharing";
 import { getIntakeAnswers, intakeStats } from "@/server/intake/intake";
 import { roleAtLeast } from "@/server/auth/access";
-import { saveDeliverable, removeDeliverable } from "@/server/actions";
-import { DELIVERABLE_KINDS, kindLabel } from "@/lib/deliverables";
+import { removeDeliverable } from "@/server/actions";
 import { ProjectHeader } from "../../project-header";
 import { SharePanel } from "./share-panel";
 import { ShareActions } from "@/app/_components/share-actions";
+import { DeliverableEditor } from "./deliverable-editor";
 
 export default async function DeliverablePage({
   params,
@@ -44,7 +44,7 @@ export default async function DeliverablePage({
         briefPct={briefPct}
       />
 
-      <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
+      <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         <div className="flex items-center justify-between gap-4">
           <Link
             href={`/projects/${project.id}/deliverables`}
@@ -59,61 +59,16 @@ export default async function DeliverablePage({
           />
         </div>
 
-        {canEdit ? (
-          <form action={saveDeliverable} className="mt-4 space-y-4">
-            <input type="hidden" name="deliverableId" value={deliverable.id} />
-            <input type="hidden" name="projectId" value={project.id} />
-
-            <div className="flex items-center gap-3">
-              <input
-                name="title"
-                defaultValue={deliverable.title}
-                required
-                placeholder="Deliverable title…"
-                className="input flex-1 font-display text-lg"
-              />
-              <select
-                name="kind"
-                defaultValue={deliverable.kind}
-                className="input w-40 shrink-0"
-              >
-                {DELIVERABLE_KINDS.map((k) => (
-                  <option key={k.value} value={k.value}>
-                    {k.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <textarea
-              name="content"
-              defaultValue={deliverable.content}
-              rows={22}
-              placeholder="Write the deliverable in markdown…"
-              className="input min-h-[24rem] w-full resize-y font-mono text-sm leading-relaxed"
-            />
-
-            <div className="flex items-center justify-between">
-              <button type="submit" className="btn btn-primary">
-                Save
-              </button>
-            </div>
-          </form>
-        ) : (
-          <article className="mt-4">
-            <div className="flex items-center gap-3">
-              <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
-                {deliverable.title}
-              </h1>
-              <span className="badge">{kindLabel(deliverable.kind)}</span>
-            </div>
-            <div className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-ink">
-              {deliverable.content || (
-                <span className="text-muted">This deliverable is empty.</span>
-              )}
-            </div>
-          </article>
-        )}
+        <div className="mt-4">
+          <DeliverableEditor
+            deliverableId={deliverable.id}
+            projectId={project.id}
+            initialTitle={deliverable.title}
+            initialKind={deliverable.kind}
+            initialContent={deliverable.content}
+            canEdit={canEdit}
+          />
+        </div>
 
         {canEdit && (
           <SharePanel
