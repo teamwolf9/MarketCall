@@ -211,6 +211,13 @@ export function DeliverableEditor({
   const [refined, setRefined] = useState(false);
   const [refineError, setRefineError] = useState<string | null>(null);
   const [, rerender] = useReducer((x) => x + 1, 0);
+  // Parse the starting content once — useEditor ignores `content` after mount,
+  // but the expression would otherwise re-run on every transaction rerender.
+  const [initialHtml] = useState(() =>
+    looksLikeHtml(initialContent)
+      ? initialContent
+      : (marked.parse(initialContent ?? "", { async: false }) as string),
+  );
 
   const editor = useEditor({
     extensions: [
@@ -221,9 +228,7 @@ export function DeliverableEditor({
       Subscript,
       Superscript,
     ],
-    content: looksLikeHtml(initialContent)
-      ? initialContent
-      : (marked.parse(initialContent ?? "", { async: false }) as string),
+    content: initialHtml,
     immediatelyRender: false,
     editorProps: { attributes: { class: "doc" } },
     onUpdate: () => setSaved(false),

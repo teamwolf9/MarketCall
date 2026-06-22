@@ -3,11 +3,16 @@ import { and, cosineDistance, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/server/db";
 import { memories, deliverables, projects } from "@/server/db/schema";
 import { projectRole, roleAtLeast } from "@/server/auth/access";
+import TurndownService from "turndown";
 import {
   embedQuery,
   embedTexts,
   embeddingsConfigured,
 } from "@/server/ai/embeddings";
+import { looksLikeHtml } from "@/lib/deliverable-content";
+
+// Embed plain prose, not editor HTML — strip tags so the vectors capture meaning.
+const turndown = new TurndownService();
 
 /**
  * Brand memory: index deliverables as embeddings and retrieve the nearest ones
@@ -39,7 +44,10 @@ async function brandIdForProject(projectId: string): Promise<string | null> {
 
 /** What we embed for a deliverable — title carries a lot of the intent. */
 function memoryText(d: IndexableDeliverable): string {
-  return `${d.title}\n\n${d.content}`.slice(0, MAX_CHARS);
+  const body = looksLikeHtml(d.content)
+    ? turndown.turndown(d.content)
+    : d.content;
+  return `${d.title}\n\n${body}`.slice(0, MAX_CHARS);
 }
 
 /** Upsert one deliverable's memory row from a precomputed embedding. */

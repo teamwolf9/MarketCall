@@ -120,9 +120,10 @@ export async function POST(req: Request) {
       projectId: ctx.project.id,
       projectName: ctx.project.name,
     }),
-    // Let the model call a tool, see the result, then keep going (e.g. schedule
-    // several events, then write the confirmation) within one response.
-    stopWhen: stepCountIs(8),
+    // Let the model call a tool, see the result, then keep going (e.g. research,
+    // then schedule several events, then write the confirmation) in one response.
+    // Higher now that there are more tools (research + presentation + calendar).
+    stopWhen: stepCountIs(12),
     onFinish: async ({ text }) => {
       const clean = text.trim();
       if (clean) {

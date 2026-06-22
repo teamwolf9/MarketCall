@@ -1,4 +1,12 @@
+import { timingSafeEqual } from "node:crypto";
 import { runDueAutomations } from "@/server/automations";
+
+/** Constant-time secret comparison — avoids leaking the secret via timing. */
+function secretOk(provided: string, expected: string): boolean {
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 /**
  * Scheduler entrypoint for autonomous automations. Point any cron at it — Vercel
@@ -19,7 +27,7 @@ async function handle(req: Request): Promise<Response> {
   const auth = req.headers.get("authorization");
   const url = new URL(req.url);
   const provided = auth?.replace(/^Bearer\s+/i, "") ?? url.searchParams.get("secret");
-  if (provided !== secret) {
+  if (!provided || !secretOk(provided, secret)) {
     return new Response("Unauthorized", { status: 401 });
   }
 

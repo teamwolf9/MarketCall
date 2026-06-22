@@ -30,7 +30,9 @@ import {
   runAutomationNow,
 } from "@/server/automations";
 import type { AutomationCadence } from "@/server/db/schema";
+import { sanitizeDeliverableHtml } from "@/server/sanitize";
 import { DELIVERABLE_KINDS as DELIVERABLE_KIND_OPTIONS } from "@/lib/deliverables";
+import { looksLikeHtml } from "@/lib/deliverable-content";
 import { slugify } from "@/lib/slug";
 
 const DELIVERABLE_KIND_VALUES = DELIVERABLE_KIND_OPTIONS.map((k) => k.value);
@@ -249,7 +251,10 @@ export async function saveDeliverable(formData: FormData): Promise<void> {
     ? (kindRaw as DeliverableKind)
     : undefined;
 
-  await updateDeliverable(userId, deliverableId, { title, kind, content });
+  // Rich HTML from the editor is sanitized before storage — it's rendered on the
+  // public share page, so untrusted markup must not survive.
+  const safe = looksLikeHtml(content) ? sanitizeDeliverableHtml(content) : content;
+  await updateDeliverable(userId, deliverableId, { title, kind, content: safe });
   revalidatePath(`/projects/${projectId}/deliverables/${deliverableId}`);
   revalidatePath(`/projects/${projectId}/deliverables`);
 }
