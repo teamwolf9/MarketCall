@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   addDays,
   addMonths,
@@ -47,21 +47,26 @@ export function CalendarApp({ projects }: { projects: CalProject[] }) {
     return { from, to: addDays(from, 7) };
   }, [view, cursor]);
 
-  const load = useCallback(async () => {
-    const params = new URLSearchParams({
-      from: range.from.toISOString(),
-      to: range.to.toISOString(),
-    });
-    const res = await fetch(`/api/calendar/events?${params}`);
-    if (res.ok) {
-      const data = await res.json();
-      setEvents(data.events as CalEvent[]);
-    }
-  }, [range.from, range.to]);
-
+  // Fetch events whenever the visible range changes. Canonical data-fetch
+  // effect: the `ignore` flag drops a stale response if the range changes again
+  // before this one resolves.
   useEffect(() => {
-    load();
-  }, [load]);
+    let ignore = false;
+    (async () => {
+      const params = new URLSearchParams({
+        from: range.from.toISOString(),
+        to: range.to.toISOString(),
+      });
+      const res = await fetch(`/api/calendar/events?${params}`);
+      if (!ignore && res.ok) {
+        const data = await res.json();
+        setEvents(data.events as CalEvent[]);
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, [range.from, range.to]);
 
   const visible = useMemo(
     () => events.filter((e) => selected.has(e.projectId)),
