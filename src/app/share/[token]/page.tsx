@@ -40,7 +40,7 @@ export default async function SharedDeliverablePage({
           </div>
         </header>
 
-        <article className="mt-8">
+        <article className="doc-page mt-8 px-8 py-10 sm:px-12">
           {deliverable.content ? (
             <Markdown>{deliverable.content}</Markdown>
           ) : (

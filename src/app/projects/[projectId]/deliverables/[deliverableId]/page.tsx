@@ -74,7 +74,7 @@ export default async function DeliverablePage({
                 </h1>
                 <span className="badge">{kindLabel(deliverable.kind)}</span>
               </div>
-              <div className="card mt-5 p-7 sm:p-9">
+              <div className="doc-page mt-5 px-8 py-8 sm:px-12">
                 {deliverable.content ? (
                   <Markdown>{deliverable.content}</Markdown>
                 ) : (

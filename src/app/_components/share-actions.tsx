@@ -2,6 +2,7 @@
 
 import { marked } from "marked";
 import { slugify } from "@/lib/slug";
+import { looksLikeHtml } from "@/lib/deliverable-content";
 
 /**
  * Download a deliverable as PDF or Word. The content is markdown; we render it to
@@ -36,8 +37,10 @@ const DOC_CSS = `
   hr { border: 0; border-top: 1px solid #e3e0d8; margin: 28px 0; }
 `;
 
-function buildDoc(title: string, markdown: string): string {
-  const body = marked.parse(markdown, { async: false }) as string;
+function buildDoc(title: string, content: string): string {
+  const body = looksLikeHtml(content)
+    ? content
+    : (marked.parse(content, { async: false }) as string);
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${DOC_CSS}</style></head><body><h1>${esc(title)}</h1>${body}</body></html>`;
 }
 

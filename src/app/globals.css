@@ -280,13 +280,41 @@ body {
 }
 
 /*
- * Rendered markdown document — the formatted view of a deliverable. Tuned to the
- * warm palette; serif display headings, comfortable measure, clean tables.
+ * Deliverables render as a white "paper" document (like Word) inside the dark
+ * app, so user colours/highlights read correctly. Fixed light document palette,
+ * independent of the app theme.
  */
+.doc-page {
+  background: #ffffff;
+  color: #201d18;
+  border: 1px solid #e6e3da;
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+.doc-page .doc :first-child {
+  margin-top: 0;
+}
 .doc {
-  color: var(--color-ink);
+  color: #201d18;
   font-size: 0.95rem;
   line-height: 1.7;
+}
+.doc :where(h1, h2, h3, h4) {
+  color: #15120e;
+}
+.doc a {
+  color: #b05730;
+}
+.doc strong {
+  color: #15120e;
+}
+/* The editor's editable surface fills the page and hides the focus outline. */
+.doc.ProseMirror:focus,
+.doc .ProseMirror:focus {
+  outline: none;
+}
+.doc.ProseMirror {
+  min-height: 50vh;
 }
 .doc > :first-child {
   margin-top: 0;
@@ -298,7 +326,6 @@ body {
   font-family: var(--font-display), Georgia, serif;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--color-ink);
   line-height: 1.25;
 }
 .doc h1 {
@@ -309,7 +336,7 @@ body {
   font-size: 1.45rem;
   margin: 1.6em 0 0.5em;
   padding-bottom: 0.3em;
-  border-bottom: 1px solid var(--color-line);
+  border-bottom: 1px solid #e6e3da;
 }
 .doc h3 {
   font-size: 1.18rem;
@@ -323,12 +350,10 @@ body {
   margin: 0.85em 0;
 }
 .doc a {
-  color: var(--color-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 .doc strong {
-  color: var(--color-ink);
   font-weight: 600;
 }
 .doc ul,
@@ -346,27 +371,27 @@ body {
   margin: 0.3em 0;
 }
 .doc li::marker {
-  color: var(--color-muted);
+  color: #93918a;
 }
 .doc blockquote {
   margin: 1em 0;
   padding: 0.2em 1em;
-  border-left: 3px solid var(--color-accent);
-  color: var(--color-ink-soft);
+  border-left: 3px solid #c96442;
+  color: #5c5a52;
 }
 .doc code {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 0.85em;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-line);
+  background: #f4f2ec;
+  border: 1px solid #e6e3da;
   border-radius: 5px;
   padding: 0.1em 0.35em;
 }
 .doc pre {
   margin: 1em 0;
   padding: 1em;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-line);
+  background: #f4f2ec;
+  border: 1px solid #e6e3da;
   border-radius: 10px;
   overflow-x: auto;
 }
@@ -379,7 +404,7 @@ body {
 .doc hr {
   margin: 1.8em 0;
   border: 0;
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid #e6e3da;
 }
 .doc table {
   width: 100%;
@@ -389,17 +414,27 @@ body {
 }
 .doc th,
 .doc td {
-  border: 1px solid var(--color-line);
+  border: 1px solid #e6e3da;
   padding: 0.5em 0.75em;
   text-align: left;
 }
 .doc th {
-  background: var(--color-surface-2);
+  background: #f4f2ec;
   font-weight: 600;
 }
 .doc img {
   max-width: 100%;
   border-radius: 10px;
+}
+/* Word-like alignment classes TipTap sets via inline style also covered here. */
+.doc [style*="text-align: center"] {
+  text-align: center;
+}
+.doc [style*="text-align: right"] {
+  text-align: right;
+}
+.doc [style*="text-align: justify"] {
+  text-align: justify;
 }
 
 /* Blur-up entrance for primary content — the app's motion signature, shared
