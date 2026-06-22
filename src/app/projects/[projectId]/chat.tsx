@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
+import { useSpeechRecognition } from "@/app/_components/use-speech-recognition";
+import { SpeakButton } from "@/app/_components/speak-button";
 
 type MessageMeta = { specialist?: string; model?: string };
 
@@ -129,6 +131,17 @@ export function Chat({
 
   const busy = status === "submitted" || status === "streaming";
 
+  // Voice input: dictation appends to whatever was typed when the mic started.
+  const dictationBase = useRef("");
+  const { supported: micSupported, listening, toggle: toggleMic } =
+    useSpeechRecognition((t) =>
+      setInput((dictationBase.current ? dictationBase.current + " " : "") + t),
+    );
+  function onMic() {
+    if (!listening) dictationBase.current = input.trim();
+    toggleMic();
+  }
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const text = input.trim();
@@ -196,9 +209,14 @@ export function Chat({
                   {text || (busy ? "…" : "")}
                 </div>
               )}
-              {caption && (
-                <div className="ml-1 mt-1 font-mono text-[11px] text-muted">
-                  {caption}
+              {(caption || (m.role === "assistant" && text)) && (
+                <div className="ml-1 mt-1 flex items-center gap-3">
+                  {caption && (
+                    <span className="font-mono text-[11px] text-muted">
+                      {caption}
+                    </span>
+                  )}
+                  {m.role === "assistant" && text && <SpeakButton text={text} />}
                 </div>
               )}
             </div>
@@ -235,6 +253,21 @@ export function Chat({
           }
           className="input max-h-40 flex-1 resize-none disabled:opacity-50"
         />
+        {micSupported && (
+          <button
+            type="button"
+            onClick={onMic}
+            disabled={!canPost || busy}
+            aria-pressed={listening}
+            title={listening ? "Stop dictation" : "Dictate"}
+            className={
+              "btn btn-outline " +
+              (listening ? "animate-pulse border-accent text-accent" : "")
+            }
+          >
+            {listening ? "● Mic" : "🎤"}
+          </button>
+        )}
         <button
           type="submit"
           disabled={!canPost || busy || !input.trim()}
