@@ -8,6 +8,7 @@ import {
   index,
   boolean,
   jsonb,
+  integer,
   vector,
 } from "drizzle-orm/pg-core";
 
@@ -340,6 +341,50 @@ export const memories = pgTable(
   (t) => [index("memories_brand_idx").on(t.brandId)],
 );
 
+/**
+ * Durable jobs — long agent runs that can't fit in one chat request (e.g. a
+ * full campaign: strategy → calendar → ad copy, each its own model call). State
+ * lives here so the run survives the request: a worker advances status/progress
+ * and the UI polls. The execution layer is in-process today; the persisted row
+ * is what makes it swappable for Inngest/Trigger.dev later without UI changes.
+ */
+export const jobKindEnum = pgEnum("job_kind", ["campaign"]);
+export const jobStatusEnum = pgEnum("job_status", [
+  "queued",
+  "running",
+  "succeeded",
+  "failed",
+]);
+
+export const jobs = pgTable(
+  "jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    kind: jobKindEnum("kind").notNull().default("campaign"),
+    status: jobStatusEnum("status").notNull().default("queued"),
+    // What the user asked for (the campaign goal/prompt).
+    goal: text("goal").notNull().default(""),
+    // 0–100, plus a human label for the step currently running.
+    progress: integer("progress").notNull().default(0),
+    step: text("step"),
+    // What the run produced (e.g. { deliverableIds, eventCount, summary }).
+    result: jsonb("result").$type<Record<string, unknown>>(),
+    error: text("error"),
+    createdByUserId: text("created_by_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (t) => [index("jobs_project_idx").on(t.projectId, t.createdAt)],
+);
+
 export type Thread = typeof threads.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type MessageRole = (typeof messageRoleEnum.enumValues)[number];
@@ -349,5 +394,7 @@ export type Deliverable = typeof deliverables.$inferSelect;
 export type DeliverableKind = (typeof deliverableKindEnum.enumValues)[number];
 export type ShareLink = typeof shareLinks.$inferSelect;
 export type Memory = typeof memories.$inferSelect;
+export type Job = typeof jobs.$inferSelect;
+export type JobStatus = (typeof jobStatusEnum.enumValues)[number];
 export type AiProvider = typeof aiProviders.$inferSelect;
 export type AiProviderType = (typeof aiProviderTypeEnum.enumValues)[number];

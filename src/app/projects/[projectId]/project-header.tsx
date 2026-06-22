@@ -3,7 +3,7 @@ import { UserButton } from "@clerk/nextjs";
 import { GlobalLinks } from "@/app/nav";
 import type { Brand, Project, Role } from "@/server/db/schema";
 
-type ProjectTab = "chat" | "brief" | "deliverables";
+type ProjectTab = "chat" | "brief" | "deliverables" | "jobs";
 
 export function ProjectHeader({
   brand,
@@ -70,6 +70,7 @@ export function ProjectHeader({
             "deliverables",
             "Deliverables",
           )}
+          {tab(`/projects/${project.id}/jobs`, "jobs", "Jobs")}
         </nav>
       </div>
     </header>
