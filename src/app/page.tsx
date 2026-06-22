@@ -5,6 +5,7 @@ import { listBrandsForUser } from "@/server/queries";
 import { createBrand, deleteBrand } from "@/server/actions";
 import { activatePendingInvites } from "@/server/memberships";
 import { Landing } from "@/app/_components/landing";
+import { BrandLogo } from "@/app/_components/brand-logo";
 
 export default async function Home() {
   const { userId } = await auth();
@@ -69,11 +70,16 @@ export default async function Home() {
                   className="group relative card p-5 transition-shadow hover:shadow-md"
                 >
                   <Link href={`/brands/${b.id}`} className="block">
-                    <div className="font-display text-lg font-semibold text-ink">
-                      {b.name}
-                    </div>
-                    <div className="mt-1 font-mono text-xs text-muted">
-                      /{b.slug}
+                    <div className="flex items-center gap-2.5">
+                      <BrandLogo name={b.name} logoUrl={b.logoUrl} size={32} />
+                      <div className="min-w-0">
+                        <div className="truncate font-display text-lg font-semibold text-ink">
+                          {b.name}
+                        </div>
+                        <div className="font-mono text-xs text-muted">
+                          /{b.slug}
+                        </div>
+                      </div>
                     </div>
                     <div className="mt-6 inline-flex items-center gap-1 text-sm text-accent">
                       Open

@@ -59,6 +59,37 @@ export async function deleteBrand(formData: FormData): Promise<void> {
   revalidatePath("/");
 }
 
+/**
+ * Set a brand's logo from a downscaled data URL produced client-side. Admin+ on
+ * the brand. Guards the type and size so the column stays small (the client
+ * shrinks to ~128px; we cap at 256KB as a backstop).
+ */
+export async function setBrandLogo(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const brandId = String(formData.get("brandId") ?? "");
+  const logo = String(formData.get("logo") ?? "");
+  if (!brandId || !logo) return;
+  if (!roleAtLeast(await brandRole(userId, brandId), "admin")) return;
+  if (!/^data:image\/(png|jpeg|webp);base64,/.test(logo)) return;
+  if (logo.length > 256 * 1024) return;
+
+  await db.update(brands).set({ logoUrl: logo }).where(eq(brands.id, brandId));
+  revalidatePath(`/brands/${brandId}`);
+  revalidatePath("/");
+}
+
+/** Remove a brand's logo. Admin+ on the brand. */
+export async function removeBrandLogo(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const brandId = String(formData.get("brandId") ?? "");
+  if (!brandId) return;
+  if (!roleAtLeast(await brandRole(userId, brandId), "admin")) return;
+
+  await db.update(brands).set({ logoUrl: null }).where(eq(brands.id, brandId));
+  revalidatePath(`/brands/${brandId}`);
+  revalidatePath("/");
+}
+
 /** Create a project under a brand. Editor+ on the brand (inherited or direct). */
 export async function createProject(formData: FormData): Promise<void> {
   const userId = await requireUserId();

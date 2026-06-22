@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { GlobalLinks } from "@/app/nav";
+import { BrandLogo } from "@/app/_components/brand-logo";
 import type { Brand, Project, Role } from "@/server/db/schema";
 
 type ProjectTab = "chat" | "brief" | "deliverables" | "jobs";
@@ -42,8 +43,9 @@ export function ProjectHeader({
             <span className="text-line-strong">/</span>
             <Link
               href={`/brands/${brand.id}`}
-              className="text-ink-soft transition-colors hover:text-ink"
+              className="flex items-center gap-1.5 text-ink-soft transition-colors hover:text-ink"
             >
+              <BrandLogo name={brand.name} logoUrl={brand.logoUrl} size={16} />
               {brand.name}
             </Link>
             <span className="text-line-strong">/</span>

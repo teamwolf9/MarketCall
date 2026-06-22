@@ -15,6 +15,8 @@ import { listUpcomingForBrand } from "@/server/calendar";
 import { roleAtLeast } from "@/server/auth/access";
 import { projectColor } from "@/lib/colors";
 import { shortDate, timeLabel } from "@/lib/dates";
+import { BrandLogo } from "@/app/_components/brand-logo";
+import { BrandLogoUploader } from "./brand-logo-uploader";
 
 export default async function BrandPage({
   params,
@@ -43,7 +45,10 @@ export default async function BrandPage({
               Brands
             </Link>
             <span className="text-line-strong">/</span>
-            <span className="text-ink">{brand.name}</span>
+            <span className="flex items-center gap-2 text-ink">
+              <BrandLogo name={brand.name} logoUrl={brand.logoUrl} size={18} />
+              {brand.name}
+            </span>
           </nav>
           <div className="flex items-center gap-4">
             <GlobalLinks />
@@ -55,6 +60,7 @@ export default async function BrandPage({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <main className="rise mx-auto w-full max-w-4xl px-6 py-12">
         <div className="flex items-center gap-3">
+          <BrandLogo name={brand.name} logoUrl={brand.logoUrl} size={40} />
           <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
             {brand.name}
           </h1>
@@ -63,6 +69,19 @@ export default async function BrandPage({
         <p className="mt-2 text-[15px] text-ink-soft">
           Projects under this brand. Open one to work with the assistant.
         </p>
+
+        {canManage && (
+          <div className="mt-6">
+            <span className="label">Brand logo</span>
+            <div className="mt-3">
+              <BrandLogoUploader
+                brandId={brand.id}
+                name={brand.name}
+                logoUrl={brand.logoUrl}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Projects */}
         <section className="mt-10">

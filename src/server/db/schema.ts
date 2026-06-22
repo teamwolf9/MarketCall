@@ -57,6 +57,9 @@ export const brands = pgTable(
       .references(() => orgs.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     slug: text("slug").notNull(),
+    // Brand logo as a small downscaled data URL (no external storage needed;
+    // swap for an R2 object URL later). Null when unset.
+    logoUrl: text("logo_url"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
