@@ -59,6 +59,49 @@ export async function listEventsInRange(
     .orderBy(asc(calendarEvents.startsAt));
 }
 
+export type UpcomingEvent = CalendarEvent & { projectName: string };
+
+/**
+ * Upcoming events across a brand's projects (the ones the user can reach),
+ * from the start of today forward, soonest first — for the brand dashboard's
+ * "Upcoming" list. Access is the intersection of the brand's projects and the
+ * user's reachable set, so it never leaks a project they can't see.
+ */
+export async function listUpcomingForBrand(
+  userId: string,
+  brandId: string,
+  limit = 50,
+): Promise<UpcomingEvent[]> {
+  const ids = await reachableProjectIds(userId);
+  if (ids.length === 0) return [];
+  const from = new Date();
+  from.setHours(0, 0, 0, 0);
+  return db
+    .select({
+      id: calendarEvents.id,
+      projectId: calendarEvents.projectId,
+      title: calendarEvents.title,
+      notes: calendarEvents.notes,
+      channel: calendarEvents.channel,
+      startsAt: calendarEvents.startsAt,
+      endsAt: calendarEvents.endsAt,
+      allDay: calendarEvents.allDay,
+      createdAt: calendarEvents.createdAt,
+      projectName: projects.name,
+    })
+    .from(calendarEvents)
+    .innerJoin(projects, eq(calendarEvents.projectId, projects.id))
+    .where(
+      and(
+        eq(projects.brandId, brandId),
+        inArray(calendarEvents.projectId, ids),
+        gte(calendarEvents.startsAt, from),
+      ),
+    )
+    .orderBy(asc(calendarEvents.startsAt))
+    .limit(limit);
+}
+
 async function canEditProject(userId: string, projectId: string) {
   return roleAtLeast(await projectRole(userId, projectId), "editor");
 }

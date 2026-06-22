@@ -4,17 +4,23 @@ import { TopNav } from "@/app/nav";
 import { listBrandsForUser } from "@/server/queries";
 import { createBrand, deleteBrand } from "@/server/actions";
 import { activatePendingInvites } from "@/server/memberships";
+import { Landing } from "@/app/_components/landing";
+import { BrandLogo } from "@/app/_components/brand-logo";
 
 export default async function Home() {
   const { userId } = await auth();
-  const user = userId ? await currentUser() : null;
+
+  // Signed-out visitors get the public marketing landing.
+  if (!userId) return <Landing />;
+
+  const user = await currentUser();
 
   // First stop after sign-in: bind any invites sent to this person's email.
-  if (userId && user) {
+  if (user) {
     await activatePendingInvites(userId, user.primaryEmailAddress?.emailAddress);
   }
 
-  const brands = userId ? await listBrandsForUser(userId) : [];
+  const brands = await listBrandsForUser(userId);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -64,11 +70,16 @@ export default async function Home() {
                   className="group relative card p-5 transition-shadow hover:shadow-md"
                 >
                   <Link href={`/brands/${b.id}`} className="block">
-                    <div className="font-display text-lg font-semibold text-ink">
-                      {b.name}
-                    </div>
-                    <div className="mt-1 font-mono text-xs text-muted">
-                      /{b.slug}
+                    <div className="flex items-center gap-2.5">
+                      <BrandLogo name={b.name} logoUrl={b.logoUrl} size={32} />
+                      <div className="min-w-0">
+                        <div className="truncate font-display text-lg font-semibold text-ink">
+                          {b.name}
+                        </div>
+                        <div className="font-mono text-xs text-muted">
+                          /{b.slug}
+                        </div>
+                      </div>
                     </div>
                     <div className="mt-6 inline-flex items-center gap-1 text-sm text-accent">
                       Open

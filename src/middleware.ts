@@ -6,9 +6,11 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
  * per the brief's "auth-gated" principle.
  */
 const isPublicRoute = createRouteMatcher([
+  "/", // public marketing landing (the page redirects signed-in users into the app)
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/share/(.*)", // public deliverable links — unguessable token, no login
+  "/api/cron", // scheduler entrypoint — gated by CRON_SECRET, not a session
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

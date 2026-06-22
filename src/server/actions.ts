@@ -5,11 +5,37 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/server/db";
-import { brands, projects, memberships, threads, type Role } from "@/server/db/schema";
+import {
+  brands,
+  projects,
+  memberships,
+  threads,
+  type Role,
+  type DeliverableKind,
+} from "@/server/db/schema";
 import { ensureOrgForUser } from "@/server/orgs";
 import { brandRole, roleAtLeast, projectRole } from "@/server/auth/access";
 import { createThreadForUser } from "@/server/threads";
+import {
+  createDeliverable,
+  updateDeliverable,
+  deleteDeliverable,
+} from "@/server/deliverables";
+import { createShareLink, revokeShareLink } from "@/server/sharing";
+import { reindexProjectMemories } from "@/server/memory";
+import {
+  createAutomation,
+  setAutomationEnabled,
+  deleteAutomation,
+  runAutomationNow,
+} from "@/server/automations";
+import type { AutomationCadence } from "@/server/db/schema";
+import { sanitizeDeliverableHtml } from "@/server/sanitize";
+import { DELIVERABLE_KINDS as DELIVERABLE_KIND_OPTIONS } from "@/lib/deliverables";
+import { looksLikeHtml } from "@/lib/deliverable-content";
 import { slugify } from "@/lib/slug";
+
+const DELIVERABLE_KIND_VALUES = DELIVERABLE_KIND_OPTIONS.map((k) => k.value);
 
 async function requireUserId(): Promise<string> {
   const { userId } = await auth();
@@ -39,6 +65,37 @@ export async function deleteBrand(formData: FormData): Promise<void> {
   if (!roleAtLeast(role, "admin")) return; // silent no-op for the under-privileged
 
   await db.delete(brands).where(eq(brands.id, brandId));
+  revalidatePath("/");
+}
+
+/**
+ * Set a brand's logo from a downscaled data URL produced client-side. Admin+ on
+ * the brand. Guards the type and size so the column stays small (the client
+ * shrinks to ~128px; we cap at 256KB as a backstop).
+ */
+export async function setBrandLogo(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const brandId = String(formData.get("brandId") ?? "");
+  const logo = String(formData.get("logo") ?? "");
+  if (!brandId || !logo) return;
+  if (!roleAtLeast(await brandRole(userId, brandId), "admin")) return;
+  if (!/^data:image\/(png|jpeg|webp);base64,/.test(logo)) return;
+  if (logo.length > 256 * 1024) return;
+
+  await db.update(brands).set({ logoUrl: logo }).where(eq(brands.id, brandId));
+  revalidatePath(`/brands/${brandId}`);
+  revalidatePath("/");
+}
+
+/** Remove a brand's logo. Admin+ on the brand. */
+export async function removeBrandLogo(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const brandId = String(formData.get("brandId") ?? "");
+  if (!brandId) return;
+  if (!roleAtLeast(await brandRole(userId, brandId), "admin")) return;
+
+  await db.update(brands).set({ logoUrl: null }).where(eq(brands.id, brandId));
+  revalidatePath(`/brands/${brandId}`);
   revalidatePath("/");
 }
 
@@ -162,4 +219,135 @@ export async function deleteChatThread(formData: FormData): Promise<void> {
     .delete(threads)
     .where(and(eq(threads.id, threadId), eq(threads.projectId, projectId)));
   revalidatePath(`/projects/${projectId}`);
+}
+
+/** Create a blank deliverable and open it for editing. Editor+ on the project. */
+export async function createBlankDeliverable(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!projectId) return;
+
+  const row = await createDeliverable(userId, {
+    projectId,
+    title: "Untitled deliverable",
+    kind: "other",
+  });
+  if (!row) return; // under-privileged or missing project — silent no-op
+  revalidatePath(`/projects/${projectId}/deliverables`);
+  redirect(`/projects/${projectId}/deliverables/${row.id}`);
+}
+
+/** Save edits to a deliverable's title/kind/content. Editor+ on the project. */
+export async function saveDeliverable(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const deliverableId = String(formData.get("deliverableId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const kindRaw = String(formData.get("kind") ?? "");
+  const content = String(formData.get("content") ?? "");
+  if (!deliverableId || !projectId || !title) return;
+
+  const kind = DELIVERABLE_KIND_VALUES.includes(kindRaw as DeliverableKind)
+    ? (kindRaw as DeliverableKind)
+    : undefined;
+
+  // Rich HTML from the editor is sanitized before storage — it's rendered on the
+  // public share page, so untrusted markup must not survive.
+  const safe = looksLikeHtml(content) ? sanitizeDeliverableHtml(content) : content;
+  await updateDeliverable(userId, deliverableId, { title, kind, content: safe });
+  revalidatePath(`/projects/${projectId}/deliverables/${deliverableId}`);
+  revalidatePath(`/projects/${projectId}/deliverables`);
+}
+
+/** Delete a deliverable, then return to the list. Editor+ on the project. */
+export async function removeDeliverable(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const deliverableId = String(formData.get("deliverableId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!deliverableId || !projectId) return;
+
+  await deleteDeliverable(userId, deliverableId);
+  revalidatePath(`/projects/${projectId}/deliverables`);
+  redirect(`/projects/${projectId}/deliverables`);
+}
+
+/** Mint a public share link for a deliverable. Editor+ on the project. */
+export async function createShareLinkAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const deliverableId = String(formData.get("deliverableId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!deliverableId || !projectId) return;
+
+  await createShareLink(userId, deliverableId);
+  revalidatePath(`/projects/${projectId}/deliverables/${deliverableId}`);
+}
+
+/** Revoke a public share link (it stops resolving immediately). Editor+. */
+export async function revokeShareLinkAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const linkId = String(formData.get("linkId") ?? "");
+  const deliverableId = String(formData.get("deliverableId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!linkId || !deliverableId || !projectId) return;
+
+  await revokeShareLink(userId, linkId);
+  revalidatePath(`/projects/${projectId}/deliverables/${deliverableId}`);
+}
+
+/** Re-embed all of a project's deliverables into brand memory. Editor+. */
+export async function reindexMemory(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!projectId) return;
+
+  await reindexProjectMemories(userId, projectId);
+  revalidatePath(`/projects/${projectId}/deliverables`);
+}
+
+/** Create an autonomous automation for a project. Editor+. */
+export async function createAutomationAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const projectId = String(formData.get("projectId") ?? "");
+  const goal = String(formData.get("goal") ?? "").trim();
+  const cadence = String(formData.get("cadence") ?? "weekly") as AutomationCadence;
+  if (!projectId || !goal) return;
+  if (cadence !== "daily" && cadence !== "weekly") return;
+
+  await createAutomation(userId, projectId, goal, cadence);
+  revalidatePath(`/projects/${projectId}/jobs`);
+}
+
+/** Enable/disable an automation. Editor+. */
+export async function toggleAutomationAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const automationId = String(formData.get("automationId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  const enabled = String(formData.get("enabled") ?? "") === "true";
+  if (!automationId || !projectId) return;
+
+  await setAutomationEnabled(userId, automationId, enabled);
+  revalidatePath(`/projects/${projectId}/jobs`);
+}
+
+/** Delete an automation. Editor+. */
+export async function deleteAutomationAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const automationId = String(formData.get("automationId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!automationId || !projectId) return;
+
+  await deleteAutomation(userId, automationId);
+  revalidatePath(`/projects/${projectId}/jobs`);
+}
+
+/** Run an automation immediately. Editor+. */
+export async function runAutomationNowAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const automationId = String(formData.get("automationId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!automationId || !projectId) return;
+
+  await runAutomationNow(userId, automationId);
+  revalidatePath(`/projects/${projectId}/jobs`);
+  revalidatePath(`/projects/${projectId}/deliverables`);
 }

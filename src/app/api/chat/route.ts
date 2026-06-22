@@ -1,5 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  stepCountIs,
+  streamText,
+  type UIMessage,
+} from "ai";
 import {
   aiConfiguredForOrg,
   modelLabelForOrg,
@@ -7,6 +12,8 @@ import {
 } from "@/server/ai/providers";
 import { routeToSpecialist } from "@/server/ai/orchestrator";
 import { SPECIALISTS } from "@/server/ai/specialists";
+import { projectTools } from "@/server/ai/tools";
+import { searchBrandMemory } from "@/server/memory";
 import { getIntakeAnswers, formatBriefForPrompt } from "@/server/intake/intake";
 import {
   appendMessage,
@@ -65,21 +72,58 @@ export async function POST(req: Request) {
   const specialistKey = await routeToSpecialist(orgId, userText);
   const specialist = SPECIALISTS[specialistKey];
 
-  const [model, label, modelMessages, answers] = await Promise.all([
+  const [model, label, modelMessages, answers, memHits] = await Promise.all([
     resolveModelForOrg(orgId, specialist.model),
     modelLabelForOrg(orgId, specialist.model),
     convertToModelMessages(messages),
     getIntakeAnswers(ctx.project.id),
+    // RAG: pull the brand's most relevant past work for this turn (best-effort).
+    searchBrandMemory(ctx.brand.id, userText, 4),
   ]);
+
+  // Relevant past deliverables for this brand, injected so the assistant has
+  // continuity and voice across threads instead of starting cold each time.
+  const memoryBlock = memHits.length
+    ? `\n\n# Brand memory — relevant past work\nExcerpts from earlier deliverables for ${ctx.brand.name}. Build on them for continuity and voice; don't contradict them without flagging it.\n\n${memHits
+        .map((h) => `## ${h.title}\n${h.content.slice(0, 1200)}`)
+        .join("\n\n")}`
+    : "";
+
+  // Today's date so the model can resolve relative dates ("next Monday").
+  const today = new Date().toISOString().slice(0, 10);
+  const toolGuidance =
+    `\n\nToday is ${today}. You can act on this project, not just advise: use ` +
+    `schedule_calendar_event to put items on the content calendar, ` +
+    `list_calendar_events to see what's already planned, save_deliverable to ` +
+    `save substantial work (a plan, ad-copy set, calendar write-up, or SEO brief) ` +
+    `as a durable artifact, and create_presentation to build a slide deck the user ` +
+    `can download as PowerPoint. When the user asks to schedule ` +
+    `or plan dates, call the calendar tool for each item; when they ask for a deck ` +
+    `or slides, call create_presentation; use web_research to ground strategy work ` +
+    `in current external facts; when you produce other real work, save ` +
+    `it as a deliverable. Then confirm what you did. These ` +
+    `write to drafts in MarketCall only — they never publish to a live account.`;
 
   const result = streamText({
     model,
-    system: specialist.system({
-      brandName: ctx.brand.name,
-      projectName: ctx.project.name,
-      brief: formatBriefForPrompt(answers),
-    }),
+    system:
+      specialist.system({
+        brandName: ctx.brand.name,
+        projectName: ctx.project.name,
+        brief: formatBriefForPrompt(answers),
+      }) +
+      memoryBlock +
+      toolGuidance,
     messages: modelMessages,
+    tools: projectTools({
+      userId,
+      projectId: ctx.project.id,
+      projectName: ctx.project.name,
+    }),
+    // Let the model call a tool, see the result, then keep going (e.g. research,
+    // then schedule several events, then write the confirmation) in one response.
+    // Higher now that there are more tools (research + presentation + calendar).
+    stopWhen: stepCountIs(12),
     onFinish: async ({ text }) => {
       const clean = text.trim();
       if (clean) {

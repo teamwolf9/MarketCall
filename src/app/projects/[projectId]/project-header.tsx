@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { GlobalLinks } from "@/app/nav";
+import { BrandLogo } from "@/app/_components/brand-logo";
 import type { Brand, Project, Role } from "@/server/db/schema";
+
+type ProjectTab = "chat" | "brief" | "deliverables" | "jobs";
 
 export function ProjectHeader({
   brand,
@@ -13,10 +16,10 @@ export function ProjectHeader({
   brand: Brand;
   project: Project;
   role: Role;
-  active: "chat" | "brief";
+  active: ProjectTab;
   briefPct: number;
 }) {
-  const tab = (href: string, key: "chat" | "brief", label: React.ReactNode) => (
+  const tab = (href: string, key: ProjectTab, label: React.ReactNode) => (
     <Link
       href={href}
       className={
@@ -40,8 +43,9 @@ export function ProjectHeader({
             <span className="text-line-strong">/</span>
             <Link
               href={`/brands/${brand.id}`}
-              className="text-ink-soft transition-colors hover:text-ink"
+              className="flex items-center gap-1.5 text-ink-soft transition-colors hover:text-ink"
             >
+              <BrandLogo name={brand.name} logoUrl={brand.logoUrl} size={16} />
               {brand.name}
             </Link>
             <span className="text-line-strong">/</span>
@@ -63,6 +67,12 @@ export function ProjectHeader({
               <span className="badge">{briefPct}%</span>
             </span>,
           )}
+          {tab(
+            `/projects/${project.id}/deliverables`,
+            "deliverables",
+            "Deliverables",
+          )}
+          {tab(`/projects/${project.id}/jobs`, "jobs", "Jobs")}
         </nav>
       </div>
     </header>
