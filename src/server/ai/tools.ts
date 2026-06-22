@@ -6,6 +6,7 @@ import { db } from "@/server/db";
 import { calendarEvents } from "@/server/db/schema";
 import { createEvent } from "@/server/calendar";
 import { createDeliverable } from "@/server/deliverables";
+import { searchWeb, webResearchConfigured } from "@/server/ai/research";
 
 /**
  * Tools that let the chat *act* on the project, not just advise. Each tool is a
@@ -158,6 +159,44 @@ export function projectTools(ctx: ToolContext) {
           return { ok: false, error: "You don't have edit access to save in this project." };
         }
         return { ok: true, id: row.id, title: row.title, slideCount: slides.length };
+      },
+    }),
+
+    web_research: tool({
+      description:
+        "Search the live web to ground your work in real, current external context — competitor moves, market trends, audience insights, news, or examples. Use it before strategy/positioning work or whenever current facts would change the output. Cite the sources you used in your reply.",
+      inputSchema: z.object({
+        query: z
+          .string()
+          .describe("A focused search query, e.g. 'DTC running shoe brands 2026 positioning'."),
+      }),
+      execute: async ({ query }) => {
+        if (!webResearchConfigured()) {
+          return {
+            ok: false,
+            error:
+              "Web research isn't configured. Add SEARCH_API_KEY (a Tavily key) to enable it.",
+          };
+        }
+        try {
+          const result = await searchWeb(query, 5);
+          if (!result) return { ok: false, error: "No results." };
+          return {
+            ok: true,
+            query,
+            answer: result.answer,
+            sources: result.sources.map((s) => ({
+              title: s.title,
+              url: s.url,
+              snippet: s.snippet.slice(0, 500),
+            })),
+          };
+        } catch (err) {
+          return {
+            ok: false,
+            error: err instanceof Error ? err.message : "Search failed.",
+          };
+        }
       },
     }),
 

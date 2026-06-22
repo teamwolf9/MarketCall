@@ -103,6 +103,8 @@ function toolChips(message: UIMessage, projectId: string) {
         }`;
       } else if (p.type === "tool-list_calendar_events") {
         label = `🔎 Checked calendar — ${out?.count ?? 0} item${out?.count === 1 ? "" : "s"}`;
+      } else if (p.type === "tool-web_research") {
+        label = `🌐 Researched the web`;
       } else {
         label = "✓ Done";
       }

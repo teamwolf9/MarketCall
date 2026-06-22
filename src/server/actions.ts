@@ -23,6 +23,13 @@ import {
 } from "@/server/deliverables";
 import { createShareLink, revokeShareLink } from "@/server/sharing";
 import { reindexProjectMemories } from "@/server/memory";
+import {
+  createAutomation,
+  setAutomationEnabled,
+  deleteAutomation,
+  runAutomationNow,
+} from "@/server/automations";
+import type { AutomationCadence } from "@/server/db/schema";
 import { DELIVERABLE_KINDS as DELIVERABLE_KIND_OPTIONS } from "@/lib/deliverables";
 import { slugify } from "@/lib/slug";
 
@@ -289,5 +296,53 @@ export async function reindexMemory(formData: FormData): Promise<void> {
   if (!projectId) return;
 
   await reindexProjectMemories(userId, projectId);
+  revalidatePath(`/projects/${projectId}/deliverables`);
+}
+
+/** Create an autonomous automation for a project. Editor+. */
+export async function createAutomationAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const projectId = String(formData.get("projectId") ?? "");
+  const goal = String(formData.get("goal") ?? "").trim();
+  const cadence = String(formData.get("cadence") ?? "weekly") as AutomationCadence;
+  if (!projectId || !goal) return;
+  if (cadence !== "daily" && cadence !== "weekly") return;
+
+  await createAutomation(userId, projectId, goal, cadence);
+  revalidatePath(`/projects/${projectId}/jobs`);
+}
+
+/** Enable/disable an automation. Editor+. */
+export async function toggleAutomationAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const automationId = String(formData.get("automationId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  const enabled = String(formData.get("enabled") ?? "") === "true";
+  if (!automationId || !projectId) return;
+
+  await setAutomationEnabled(userId, automationId, enabled);
+  revalidatePath(`/projects/${projectId}/jobs`);
+}
+
+/** Delete an automation. Editor+. */
+export async function deleteAutomationAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const automationId = String(formData.get("automationId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!automationId || !projectId) return;
+
+  await deleteAutomation(userId, automationId);
+  revalidatePath(`/projects/${projectId}/jobs`);
+}
+
+/** Run an automation immediately. Editor+. */
+export async function runAutomationNowAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const automationId = String(formData.get("automationId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!automationId || !projectId) return;
+
+  await runAutomationNow(userId, automationId);
+  revalidatePath(`/projects/${projectId}/jobs`);
   revalidatePath(`/projects/${projectId}/deliverables`);
 }

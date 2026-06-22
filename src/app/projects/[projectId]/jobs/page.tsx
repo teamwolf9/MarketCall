@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { getProjectForUser } from "@/server/threads";
 import { listJobsForUser } from "@/server/jobs";
+import { listAutomations } from "@/server/automations";
 import { aiConfiguredForOrg } from "@/server/ai/providers";
 import { getIntakeAnswers, intakeStats } from "@/server/intake/intake";
 import { roleAtLeast } from "@/server/auth/access";
 import { ProjectHeader } from "../project-header";
 import { CampaignLauncher } from "./campaign-launcher";
+import { AutomationsSection } from "./automations-section";
 
 const STATUS_STYLE: Record<string, string> = {
   queued: "bg-surface-2 text-ink-soft",
@@ -31,6 +33,7 @@ export default async function JobsPage({
   const canRun = roleAtLeast(role, "editor");
 
   const jobs = (await listJobsForUser(userId, projectId)) ?? [];
+  const automationList = (await listAutomations(userId, projectId)) ?? [];
   const briefPct = intakeStats(await getIntakeAnswers(projectId)).pct;
   const configured = await aiConfiguredForOrg(brand.orgId);
 
@@ -66,6 +69,12 @@ export default async function JobsPage({
             </div>
           )}
         </div>
+
+        <AutomationsSection
+          projectId={project.id}
+          automations={automationList}
+          canRun={canRun}
+        />
 
         <h2 className="label mt-10">History</h2>
         {jobs.length === 0 ? (

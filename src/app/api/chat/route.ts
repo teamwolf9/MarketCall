@@ -99,7 +99,8 @@ export async function POST(req: Request) {
     `as a durable artifact, and create_presentation to build a slide deck the user ` +
     `can download as PowerPoint. When the user asks to schedule ` +
     `or plan dates, call the calendar tool for each item; when they ask for a deck ` +
-    `or slides, call create_presentation; when you produce other real work, save ` +
+    `or slides, call create_presentation; use web_research to ground strategy work ` +
+    `in current external facts; when you produce other real work, save ` +
     `it as a deliverable. Then confirm what you did. These ` +
     `write to drafts in MarketCall only — they never publish to a live account.`;
 

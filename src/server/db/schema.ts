@@ -389,6 +389,38 @@ export const jobs = pgTable(
   (t) => [index("jobs_project_idx").on(t.projectId, t.createdAt)],
 );
 
+/**
+ * Automations — autonomous agents that run on a cadence and produce work on
+ * their own (e.g. a weekly content plan). A scheduler (the /api/cron endpoint)
+ * runs the ones that are due; each run generates a deliverable. State lives here
+ * so it's durable and observable, independent of what triggers the schedule.
+ */
+export const automationCadenceEnum = pgEnum("automation_cadence", [
+  "daily",
+  "weekly",
+]);
+
+export const automations = pgTable(
+  "automations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    // What the agent should do each run, in the user's words.
+    goal: text("goal").notNull(),
+    cadence: automationCadenceEnum("cadence").notNull().default("weekly"),
+    enabled: boolean("enabled").notNull().default(true),
+    lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+    nextRunAt: timestamp("next_run_at", { withTimezone: true }).notNull(),
+    createdByUserId: text("created_by_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("automations_due_idx").on(t.enabled, t.nextRunAt)],
+);
+
 export type Thread = typeof threads.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type MessageRole = (typeof messageRoleEnum.enumValues)[number];
@@ -400,5 +432,7 @@ export type ShareLink = typeof shareLinks.$inferSelect;
 export type Memory = typeof memories.$inferSelect;
 export type Job = typeof jobs.$inferSelect;
 export type JobStatus = (typeof jobStatusEnum.enumValues)[number];
+export type Automation = typeof automations.$inferSelect;
+export type AutomationCadence = (typeof automationCadenceEnum.enumValues)[number];
 export type AiProvider = typeof aiProviders.$inferSelect;
 export type AiProviderType = (typeof aiProviderTypeEnum.enumValues)[number];
