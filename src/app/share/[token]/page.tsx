@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolvePublicDeliverable } from "@/server/sharing";
 import { kindLabel } from "@/lib/deliverables";
+import { ShareActions } from "@/app/_components/share-actions";
 
 // Shared links must never be indexed by search engines.
 export const metadata: Metadata = {
@@ -27,11 +28,14 @@ export default async function SharedDeliverablePage({
               {deliverable.brandName}
             </p>
           )}
-          <div className="mt-1 flex items-center gap-3">
-            <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
-              {deliverable.title}
-            </h1>
-            <span className="badge shrink-0">{kindLabel(deliverable.kind)}</span>
+          <div className="mt-1 flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
+                {deliverable.title}
+              </h1>
+              <span className="badge shrink-0">{kindLabel(deliverable.kind)}</span>
+            </div>
+            <ShareActions title={deliverable.title} content={deliverable.content} />
           </div>
         </header>
 

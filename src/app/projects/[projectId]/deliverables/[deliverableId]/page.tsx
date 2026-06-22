@@ -9,6 +9,7 @@ import { saveDeliverable, removeDeliverable } from "@/server/actions";
 import { DELIVERABLE_KINDS, kindLabel } from "@/lib/deliverables";
 import { ProjectHeader } from "../../project-header";
 import { SharePanel } from "./share-panel";
+import { ShareActions } from "@/app/_components/share-actions";
 
 export default async function DeliverablePage({
   params,
@@ -44,12 +45,19 @@ export default async function DeliverablePage({
       />
 
       <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
-        <Link
-          href={`/projects/${project.id}/deliverables`}
-          className="text-sm text-ink-soft transition hover:text-ink"
-        >
-          ← Deliverables
-        </Link>
+        <div className="flex items-center justify-between gap-4">
+          <Link
+            href={`/projects/${project.id}/deliverables`}
+            className="text-sm text-ink-soft transition hover:text-ink"
+          >
+            ← Deliverables
+          </Link>
+          <ShareActions
+            title={deliverable.title}
+            content={deliverable.content}
+            showPdf={false}
+          />
+        </div>
 
         {canEdit ? (
           <form action={saveDeliverable} className="mt-4 space-y-4">

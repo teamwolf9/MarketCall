@@ -254,3 +254,17 @@ body {
     animation: none;
   }
 }
+
+/*
+ * Print: the app shell pins body height and hides overflow so only inner panels
+ * scroll — but for printing a shared deliverable we want the full content to
+ * flow across pages, not clip to one screen. Reset that here.
+ */
+@media print {
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff;
+  }
+}
