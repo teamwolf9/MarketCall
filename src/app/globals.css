@@ -1,40 +1,82 @@
 @import "tailwindcss";
 
 /*
- * MarketCall — "Atelier" design language.
- * Premium dark, editorial restraint (à la Legora): a warm near-black canvas,
- * warm off-white ink, generous whitespace, hairline detail, and a single quiet
- * champagne accent used sparingly. Color is rare and intentional; type and
- * space carry the design. Tokens drive everything so the whole app stays
- * cohesive.
+ * MarketCall — warm "Clay" palette (cream + terracotta), light and dark.
+ * Raw values live in :root (light) and .dark, mapped onto our role-based token
+ * names via @theme inline so every existing utility (bg-paper, text-ink,
+ * bg-accent-soft …) keeps working and flips with the theme. The app defaults to
+ * dark (html.dark in the layout); light is fully defined for a future toggle.
  */
-@theme {
-  --color-paper: #0e0d0b; /* app background — warm near-black */
-  --color-surface: #17150f; /* cards, panels */
-  --color-surface-2: #201d15; /* insets, subtle fills, hover */
-  --color-ink: #f3efe7; /* primary text — warm off-white */
-  --color-ink-soft: #a8a296; /* secondary text */
-  --color-muted: #6f695d; /* tertiary text, hints */
-  --color-line: #272420; /* hairline borders */
-  --color-line-strong: #38332b;
-  --color-accent: #c9a86c; /* champagne — the one quiet accent */
-  --color-accent-hover: #ddbf86; /* lighter, for links/hover */
-  --color-accent-soft: #241f15; /* dark warm tint for badges/active */
-  --color-accent-ink: #161109; /* text on the accent */
-  --color-danger: #e3727a;
-  --color-danger-soft: #2c1a1c;
-  --color-success: #7cc6a0;
-  --color-success-soft: #15231c;
+:root {
+  --paper: #faf9f5; /* app background */
+  --surface: #ffffff; /* cards, panels */
+  --surface-2: #ede9de; /* insets, subtle fills, hover */
+  --ink: #3d3929; /* primary text */
+  --ink-soft: #6b6a62; /* secondary text */
+  --muted: #93918a; /* tertiary text, hints */
+  --line: #dad9d4; /* hairline borders */
+  --line-strong: #b4b2a7;
+  --accent: #c96442; /* terracotta — primary accent */
+  --accent-hover: #b05730; /* darker, for hover */
+  --accent-soft: #e9e6dc; /* warm tint for badges/active */
+  --accent-ink: #ffffff; /* text on the accent */
+  --danger: #b3261e;
+  --danger-soft: #f7e4e1;
+  --success: #3e7c5a;
+  --success-soft: #e4eee7;
+  --bg-from: #fbfaf6; /* subtle app-bg gradient */
+  --bg-to: #f3f1e9;
+  --glow: rgba(201, 100, 66, 0.1); /* accent glow on landing */
+}
+
+.dark {
+  --paper: #262624;
+  --surface: #30302e;
+  --surface-2: #1b1b19;
+  --ink: #ebe8df;
+  --ink-soft: #b7b5a9;
+  --muted: #83827d;
+  --line: #3e3e38;
+  --line-strong: #52514a;
+  --accent: #d97757; /* terracotta (lighter on dark) */
+  --accent-hover: #e88d6f;
+  --accent-soft: #2a231d; /* warm dark tint */
+  --accent-ink: #1a1106;
+  --danger: #ef6360;
+  --danger-soft: #2c1a1c;
+  --success: #7cc6a0;
+  --success-soft: #15231c;
+  --bg-from: #2c2b28;
+  --bg-to: #201f1d;
+  --glow: rgba(217, 119, 87, 0.12);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
 
   --font-display: var(--font-fraunces);
   --font-sans: var(--font-hanken);
   --font-mono: var(--font-geist-mono);
 
-  /* On dark, depth comes from hairlines + barely-there shadow, not soft glow. */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 18px 44px -20px rgba(0, 0, 0, 0.7);
-  --shadow-lg: 0 36px 80px -32px rgba(0, 0, 0, 0.8);
+  --shadow-xs: 0 1px 2px rgba(20, 20, 19, 0.06);
+  --shadow-sm: 0 1px 3px rgba(20, 20, 19, 0.08), 0 1px 2px rgba(20, 20, 19, 0.05);
+  --shadow-md: 0 18px 44px -20px rgba(20, 20, 19, 0.28);
+  --shadow-lg: 0 36px 80px -32px rgba(20, 20, 19, 0.4);
 }
 
 html {
@@ -44,12 +86,11 @@ html {
 
 body {
   background-color: var(--color-paper);
-  /* Faint warm lift toward the top — depth without glow. */
+  /* Faint warm lift toward the top — adapts to light/dark via vars. */
   background-image: radial-gradient(
     120% 100% at 50% -10%,
-    #1a1711 0%,
-    #110f0c 45%,
-    #0e0d0b 100%
+    var(--bg-from) 0%,
+    var(--bg-to) 100%
   );
   background-attachment: fixed;
   color: var(--color-ink);
@@ -57,8 +98,8 @@ body {
 }
 
 ::selection {
-  background: var(--color-accent-soft);
-  color: var(--color-accent-hover);
+  background: color-mix(in srgb, var(--color-accent) 28%, transparent);
+  color: var(--color-ink);
 }
 
 /* Light, slim scrollbars — no heavy arrow buttons. */
@@ -138,14 +179,13 @@ body {
     cursor: default;
   }
 
-  /* High-contrast near-white primary — premium and quiet; color stays rare. */
   .btn-primary {
-    background: var(--color-ink);
-    color: var(--color-paper);
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
     box-shadow: var(--shadow-xs);
   }
   .btn-primary:hover:not(:disabled) {
-    background: #ffffff;
+    background: var(--color-accent-hover);
   }
 
   .btn-ghost {
@@ -185,7 +225,7 @@ body {
   }
   .input:focus {
     border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px rgba(201, 168, 108, 0.18);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 22%, transparent);
   }
 
   /* Pills + badges */

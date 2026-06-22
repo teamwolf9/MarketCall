@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0e0d0b",
+  themeColor: "#262624",
   // Full-screen launch feels native; keep content clear of notches.
   viewportFit: "cover",
 };
@@ -44,24 +44,24 @@ export default function RootLayout({
     <ClerkProvider
       appearance={{
         variables: {
-          colorBackground: "#17150f",
-          colorForeground: "#f3efe7",
-          colorMutedForeground: "#a8a296",
-          colorPrimary: "#f3efe7",
-          colorPrimaryForeground: "#0e0d0b",
-          colorInput: "#201d15",
-          colorInputForeground: "#f3efe7",
+          colorBackground: "#30302e",
+          colorForeground: "#ebe8df",
+          colorMutedForeground: "#b7b5a9",
+          colorPrimary: "#d97757",
+          colorPrimaryForeground: "#ffffff",
+          colorInput: "#1b1b19",
+          colorInputForeground: "#ebe8df",
           colorNeutral: "#ffffff",
-          colorDanger: "#e3727a",
-          colorRing: "#c9a86c",
-          borderRadius: "10px",
+          colorDanger: "#ef6360",
+          colorRing: "#d97757",
+          borderRadius: "0.5rem",
           fontFamily: "var(--font-hanken)",
         },
       }}
     >
       <html
         lang="en"
-        className={`${fraunces.variable} ${hanken.variable} ${geistMono.variable} h-full`}
+        className={`dark ${fraunces.variable} ${hanken.variable} ${geistMono.variable} h-full`}
       >
         {/* App shell: the viewport never scrolls — inner panels do. */}
         <body className="flex h-full flex-col overflow-hidden">

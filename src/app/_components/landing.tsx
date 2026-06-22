@@ -83,7 +83,7 @@ function AppMock() {
         </div>
         <div className="mt-auto flex items-center gap-2">
           <div className="h-9 flex-1 rounded-lg border border-line-strong bg-surface" />
-          <div className="h-9 w-9 rounded-lg bg-ink" />
+          <div className="h-9 w-9 rounded-lg bg-accent" />
         </div>
       </div>
     </div>
@@ -116,7 +116,7 @@ export function Landing() {
             className="pointer-events-none absolute inset-0 -z-10"
             style={{
               background:
-                "radial-gradient(115% 90% at 50% -10%, rgba(201,168,108,0.10) 0%, transparent 55%)",
+                "radial-gradient(115% 90% at 50% -10%, var(--glow) 0%, transparent 55%)",
             }}
           />
           <div className="mx-auto max-w-6xl px-6 pb-10 pt-20 sm:pt-28">
@@ -196,7 +196,7 @@ export function Landing() {
               className="pointer-events-none absolute inset-0 -z-0"
               style={{
                 background:
-                  "radial-gradient(80% 120% at 50% 0%, rgba(201,168,108,0.12) 0%, transparent 60%)",
+                  "radial-gradient(80% 120% at 50% 0%, var(--glow) 0%, transparent 60%)",
               }}
             />
             <h2 className="font-display relative text-balance text-3xl font-semibold tracking-tight text-ink md:text-4xl">
