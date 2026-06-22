@@ -22,7 +22,9 @@ export type SpecialistKey =
   | "presentation"
   | "email"
   | "analytics"
-  | "social";
+  | "social"
+  | "pr"
+  | "web";
 
 export type Specialist = {
   key: SpecialistKey;
@@ -122,6 +124,24 @@ export const SPECIALISTS: Record<SpecialistKey, Specialist> = {
     model: "default",
     system: (ctx) =>
       `${base(ctx)} You are the Social Media specialist. Write platform-native organic content: scroll-stopping hooks, captions, hashtag sets, and short-form video concepts (Reels/TikTok/Shorts) with a beat-by-beat outline. Match each platform's tone and format.`,
+  },
+  pr: {
+    key: "pr",
+    name: "PR",
+    blurb:
+      "Public relations and comms — press releases, media pitches, messaging, announcements, and talking points.",
+    model: "smart",
+    system: (ctx) =>
+      `${base(ctx)} You are the PR & Communications specialist. Produce press releases (proper structure and tone), tight media pitches tailored to a journalist's beat, messaging frameworks, and spokesperson talking points. Keep claims credible and newsworthy; flag anything that needs fact-checking.`,
+  },
+  web: {
+    key: "web",
+    name: "Web & CRO",
+    blurb:
+      "Landing pages and website copy — conversion-focused page copy, hero sections, CTAs, and A/B test ideas.",
+    model: "smart",
+    system: (ctx) =>
+      `${base(ctx)} You are the Web & Conversion specialist. Write conversion-focused landing-page and website copy: hero headlines and subheads, benefit-led sections, social proof framing, and strong CTAs. Suggest page structure and concrete A/B test hypotheses tied to the goal.`,
   },
 };
 

@@ -207,6 +207,9 @@ export function DeliverableEditor({
   const [kind, setKind] = useState<DeliverableKind>(initialKind);
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [refining, setRefining] = useState(false);
+  const [refined, setRefined] = useState(false);
+  const [refineError, setRefineError] = useState<string | null>(null);
   const [, rerender] = useReducer((x) => x + 1, 0);
 
   const editor = useEditor({
@@ -235,6 +238,31 @@ export function DeliverableEditor({
       editor.off("transaction", update);
     };
   }, [editor]);
+
+  async function refine() {
+    if (!editor || refining) return;
+    setRefining(true);
+    setRefineError(null);
+    setRefined(false);
+    try {
+      const res = await fetch(`/api/deliverables/${deliverableId}/refine`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        setRefineError(j.error || `Refine failed (${res.status}).`);
+        return;
+      }
+      const { markdown } = (await res.json()) as { markdown: string };
+      editor.commands.setContent(marked.parse(markdown, { async: false }) as string);
+      setSaved(false);
+      setRefined(true);
+    } catch {
+      setRefineError("Network error during refine.");
+    } finally {
+      setRefining(false);
+    }
+  }
 
   function save() {
     if (!editor) return;
@@ -276,10 +304,27 @@ export function DeliverableEditor({
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={refine}
+          disabled={refining || pending}
+          title="Two AI passes — a critic finds weaknesses, an editor rewrites it stronger"
+          className="btn btn-outline shrink-0"
+        >
+          {refining ? "Refining…" : "Refine ✨"}
+        </button>
         <button type="button" onClick={save} disabled={pending} className="btn btn-primary shrink-0">
           {pending ? "Saving…" : saved ? "Saved ✓" : "Save"}
         </button>
       </div>
+
+      {(refined || refineError) && (
+        <p
+          className={`mt-2 text-xs ${refineError ? "text-danger" : "text-ink-soft"}`}
+        >
+          {refineError ?? "Refined — review the changes and Save to keep them."}
+        </p>
+      )}
 
       <div className="mt-4">
         {editor && <Ribbon editor={editor} />}
