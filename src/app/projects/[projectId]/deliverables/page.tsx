@@ -5,7 +5,11 @@ import { getProjectForUser } from "@/server/threads";
 import { listDeliverables } from "@/server/deliverables";
 import { getIntakeAnswers, intakeStats } from "@/server/intake/intake";
 import { roleAtLeast } from "@/server/auth/access";
-import { createBlankDeliverable, reindexMemory } from "@/server/actions";
+import {
+  createBlankDeliverable,
+  reindexMemory,
+  removeDeliverable,
+} from "@/server/actions";
 import { embeddingsConfigured } from "@/server/ai/embeddings";
 import { kindLabel } from "@/lib/deliverables";
 import { ProjectHeader } from "../project-header";
@@ -82,10 +86,10 @@ export default async function DeliverablesPage({
         ) : (
           <ul className="mt-6 space-y-2">
             {deliverables.map((d) => (
-              <li key={d.id}>
+              <li key={d.id} className="group flex items-center gap-2">
                 <Link
                   href={`/projects/${project.id}/deliverables/${d.id}`}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface-2 px-4 py-3 transition hover:border-accent/40"
+                  className="flex flex-1 items-center justify-between gap-4 rounded-xl border border-line bg-surface-2 px-4 py-3 transition hover:border-accent/40"
                 >
                   <span className="min-w-0">
                     <span className="block truncate font-medium text-ink">
@@ -102,6 +106,19 @@ export default async function DeliverablesPage({
                   </span>
                   <span className="badge shrink-0">{kindLabel(d.kind)}</span>
                 </Link>
+                {canEdit && (
+                  <form action={removeDeliverable} className="shrink-0">
+                    <input type="hidden" name="deliverableId" value={d.id} />
+                    <input type="hidden" name="projectId" value={project.id} />
+                    <button
+                      type="submit"
+                      title="Delete deliverable"
+                      className="rounded-md px-2 py-2 text-sm text-muted opacity-0 transition hover:text-danger group-hover:opacity-100"
+                    >
+                      ✕
+                    </button>
+                  </form>
+                )}
               </li>
             ))}
           </ul>
