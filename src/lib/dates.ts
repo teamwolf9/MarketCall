@@ -74,6 +74,11 @@ export function weekLabel(cursor: Date): string {
   return `${m(a)} ${a.getDate()} – ${m(b)} ${b.getDate()}, ${b.getFullYear()}`;
 }
 
+/** Compact "Mon, Jul 1" label for list rows. */
+export function shortDate(d: Date): string {
+  return `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
+}
+
 export function timeLabel(d: Date): string {
   let h = d.getHours();
   const m = d.getMinutes();

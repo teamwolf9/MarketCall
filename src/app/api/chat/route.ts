@@ -1,5 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  stepCountIs,
+  streamText,
+  type UIMessage,
+} from "ai";
 import {
   aiConfiguredForOrg,
   modelLabelForOrg,
@@ -7,6 +12,7 @@ import {
 } from "@/server/ai/providers";
 import { routeToSpecialist } from "@/server/ai/orchestrator";
 import { SPECIALISTS } from "@/server/ai/specialists";
+import { projectTools } from "@/server/ai/tools";
 import { getIntakeAnswers, formatBriefForPrompt } from "@/server/intake/intake";
 import {
   appendMessage,
@@ -72,14 +78,35 @@ export async function POST(req: Request) {
     getIntakeAnswers(ctx.project.id),
   ]);
 
+  // Today's date so the model can resolve relative dates ("next Monday").
+  const today = new Date().toISOString().slice(0, 10);
+  const toolGuidance =
+    `\n\nToday is ${today}. You can act on this project, not just advise: use ` +
+    `schedule_calendar_event to put items on the content calendar, ` +
+    `list_calendar_events to see what's already planned, and save_deliverable to ` +
+    `save substantial work (a plan, ad-copy set, calendar write-up, or SEO brief) ` +
+    `as a durable artifact on the Deliverables tab. When the user asks to schedule ` +
+    `or plan dates, call the calendar tool for each item; when you produce a real ` +
+    `piece of work, save it as a deliverable. Then confirm what you did. These ` +
+    `write to drafts in MarketCall only — they never publish to a live account.`;
+
   const result = streamText({
     model,
-    system: specialist.system({
-      brandName: ctx.brand.name,
-      projectName: ctx.project.name,
-      brief: formatBriefForPrompt(answers),
-    }),
+    system:
+      specialist.system({
+        brandName: ctx.brand.name,
+        projectName: ctx.project.name,
+        brief: formatBriefForPrompt(answers),
+      }) + toolGuidance,
     messages: modelMessages,
+    tools: projectTools({
+      userId,
+      projectId: ctx.project.id,
+      projectName: ctx.project.name,
+    }),
+    // Let the model call a tool, see the result, then keep going (e.g. schedule
+    // several events, then write the confirmation) within one response.
+    stopWhen: stepCountIs(8),
     onFinish: async ({ text }) => {
       const clean = text.trim();
       if (clean) {

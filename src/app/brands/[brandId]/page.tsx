@@ -11,7 +11,10 @@ import {
   removeMember,
 } from "@/server/actions";
 import { listScopeMembers } from "@/server/memberships";
+import { listUpcomingForBrand } from "@/server/calendar";
 import { roleAtLeast } from "@/server/auth/access";
+import { projectColor } from "@/lib/colors";
+import { shortDate, timeLabel } from "@/lib/dates";
 
 export default async function BrandPage({
   params,
@@ -28,6 +31,7 @@ export default async function BrandPage({
   const { brand, role } = ctx;
   const projects = (await listProjectsForBrand(userId, brandId)) ?? [];
   const members = await listScopeMembers("brand", brand.id);
+  const upcoming = await listUpcomingForBrand(userId, brandId);
   const canManage = roleAtLeast(role, "admin");
 
   return (
@@ -118,6 +122,70 @@ export default async function BrandPage({
                 </div>
               ))}
             </div>
+          )}
+        </section>
+
+        {/* Upcoming — calendar list across all of this brand's projects */}
+        <section className="mt-14">
+          <div className="flex items-center justify-between">
+            <span className="label">Upcoming</span>
+            <Link
+              href="/calendar"
+              className="text-sm text-accent underline-offset-2 hover:underline"
+            >
+              Open calendar →
+            </Link>
+          </div>
+          <p className="mt-1 text-sm text-ink-soft">
+            What&apos;s scheduled across this brand&apos;s projects, color-coded by
+            project.
+          </p>
+
+          {upcoming.length === 0 ? (
+            <div className="mt-4 rounded-2xl border border-dashed border-line-strong bg-surface/50 p-10 text-center text-sm text-ink-soft">
+              Nothing scheduled yet. Plan content in a project&apos;s chat and it
+              shows up here.
+            </div>
+          ) : (
+            <ul className="card mt-4 divide-y divide-line">
+              {upcoming.map((e) => {
+                const c = projectColor(e.projectId);
+                return (
+                  <li key={e.id} className="flex items-center gap-3 px-4 py-3">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: c.dot }}
+                      aria-hidden
+                    />
+                    <div className="w-28 shrink-0 text-xs text-muted">
+                      {shortDate(e.startsAt)}
+                      {!e.allDay && ` · ${timeLabel(e.startsAt)}`}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-ink">
+                        {e.title}
+                      </div>
+                      {e.channel && (
+                        <div className="truncate text-xs text-muted">
+                          {e.channel}
+                        </div>
+                      )}
+                    </div>
+                    <Link
+                      href={`/projects/${e.projectId}`}
+                      className="badge shrink-0 hover:opacity-80"
+                      style={{
+                        backgroundColor: c.bg,
+                        color: c.text,
+                        borderColor: c.border,
+                      }}
+                    >
+                      {e.projectName}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </section>
 

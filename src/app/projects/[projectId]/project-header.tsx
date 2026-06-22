@@ -3,6 +3,8 @@ import { UserButton } from "@clerk/nextjs";
 import { GlobalLinks } from "@/app/nav";
 import type { Brand, Project, Role } from "@/server/db/schema";
 
+type ProjectTab = "chat" | "brief" | "deliverables";
+
 export function ProjectHeader({
   brand,
   project,
@@ -13,10 +15,10 @@ export function ProjectHeader({
   brand: Brand;
   project: Project;
   role: Role;
-  active: "chat" | "brief";
+  active: ProjectTab;
   briefPct: number;
 }) {
-  const tab = (href: string, key: "chat" | "brief", label: React.ReactNode) => (
+  const tab = (href: string, key: ProjectTab, label: React.ReactNode) => (
     <Link
       href={href}
       className={
@@ -62,6 +64,11 @@ export function ProjectHeader({
               Brief
               <span className="badge">{briefPct}%</span>
             </span>,
+          )}
+          {tab(
+            `/projects/${project.id}/deliverables`,
+            "deliverables",
+            "Deliverables",
           )}
         </nav>
       </div>

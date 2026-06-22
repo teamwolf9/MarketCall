@@ -5,11 +5,32 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/server/db";
-import { brands, projects, memberships, threads, type Role } from "@/server/db/schema";
+import {
+  brands,
+  projects,
+  memberships,
+  threads,
+  type Role,
+  type DeliverableKind,
+} from "@/server/db/schema";
 import { ensureOrgForUser } from "@/server/orgs";
 import { brandRole, roleAtLeast, projectRole } from "@/server/auth/access";
 import { createThreadForUser } from "@/server/threads";
+import {
+  createDeliverable,
+  updateDeliverable,
+  deleteDeliverable,
+} from "@/server/deliverables";
 import { slugify } from "@/lib/slug";
+
+const DELIVERABLE_KINDS: DeliverableKind[] = [
+  "plan",
+  "ad_copy",
+  "calendar",
+  "seo",
+  "brief",
+  "other",
+];
 
 async function requireUserId(): Promise<string> {
   const { userId } = await auth();
@@ -162,4 +183,51 @@ export async function deleteChatThread(formData: FormData): Promise<void> {
     .delete(threads)
     .where(and(eq(threads.id, threadId), eq(threads.projectId, projectId)));
   revalidatePath(`/projects/${projectId}`);
+}
+
+/** Create a blank deliverable and open it for editing. Editor+ on the project. */
+export async function createBlankDeliverable(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!projectId) return;
+
+  const row = await createDeliverable(userId, {
+    projectId,
+    title: "Untitled deliverable",
+    kind: "other",
+  });
+  if (!row) return; // under-privileged or missing project — silent no-op
+  revalidatePath(`/projects/${projectId}/deliverables`);
+  redirect(`/projects/${projectId}/deliverables/${row.id}`);
+}
+
+/** Save edits to a deliverable's title/kind/content. Editor+ on the project. */
+export async function saveDeliverable(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const deliverableId = String(formData.get("deliverableId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const kindRaw = String(formData.get("kind") ?? "");
+  const content = String(formData.get("content") ?? "");
+  if (!deliverableId || !projectId || !title) return;
+
+  const kind = DELIVERABLE_KINDS.includes(kindRaw as DeliverableKind)
+    ? (kindRaw as DeliverableKind)
+    : undefined;
+
+  await updateDeliverable(userId, deliverableId, { title, kind, content });
+  revalidatePath(`/projects/${projectId}/deliverables/${deliverableId}`);
+  revalidatePath(`/projects/${projectId}/deliverables`);
+}
+
+/** Delete a deliverable, then return to the list. Editor+ on the project. */
+export async function removeDeliverable(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const deliverableId = String(formData.get("deliverableId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!deliverableId || !projectId) return;
+
+  await deleteDeliverable(userId, deliverableId);
+  revalidatePath(`/projects/${projectId}/deliverables`);
+  redirect(`/projects/${projectId}/deliverables`);
 }

@@ -140,6 +140,7 @@ export default async function ProjectPage({
               <Chat
                 key={activeId}
                 threadId={activeId}
+                projectId={project.id}
                 initialMessages={initialMessages}
                 canPost={canPost && configured}
               />

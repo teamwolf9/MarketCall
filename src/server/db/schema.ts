@@ -235,10 +235,50 @@ export const calendarEvents = pgTable(
   ],
 );
 
+/**
+ * Deliverables — the durable artifacts the chat produces (a plan, ad-copy set,
+ * content calendar write-up, SEO brief…). The chat saves them via a tool; they
+ * live under a project and are reached through the same cascade access check.
+ * Content is markdown so it renders as a page now and exports/shares later.
+ */
+export const deliverableKindEnum = pgEnum("deliverable_kind", [
+  "plan",
+  "ad_copy",
+  "calendar",
+  "seo",
+  "brief",
+  "other",
+]);
+
+export const deliverables = pgTable(
+  "deliverables",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    kind: deliverableKindEnum("kind").notNull().default("other"),
+    title: text("title").notNull(),
+    // Markdown body. Empty for a freshly-created blank deliverable.
+    content: text("content").notNull().default(""),
+    // Clerk user id of whoever created it (null if produced by an automated run).
+    createdByUserId: text("created_by_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("deliverables_project_idx").on(t.projectId, t.createdAt)],
+);
+
 export type Thread = typeof threads.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type MessageRole = (typeof messageRoleEnum.enumValues)[number];
 export type ProjectIntake = typeof projectIntake.$inferSelect;
 export type CalendarEvent = typeof calendarEvents.$inferSelect;
+export type Deliverable = typeof deliverables.$inferSelect;
+export type DeliverableKind = (typeof deliverableKindEnum.enumValues)[number];
 export type AiProvider = typeof aiProviders.$inferSelect;
 export type AiProviderType = (typeof aiProviderTypeEnum.enumValues)[number];
