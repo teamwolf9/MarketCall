@@ -4,17 +4,22 @@ import { TopNav } from "@/app/nav";
 import { listBrandsForUser } from "@/server/queries";
 import { createBrand, deleteBrand } from "@/server/actions";
 import { activatePendingInvites } from "@/server/memberships";
+import { Landing } from "@/app/_components/landing";
 
 export default async function Home() {
   const { userId } = await auth();
-  const user = userId ? await currentUser() : null;
+
+  // Signed-out visitors get the public marketing landing.
+  if (!userId) return <Landing />;
+
+  const user = await currentUser();
 
   // First stop after sign-in: bind any invites sent to this person's email.
-  if (userId && user) {
+  if (user) {
     await activatePendingInvites(userId, user.primaryEmailAddress?.emailAddress);
   }
 
-  const brands = userId ? await listBrandsForUser(userId) : [];
+  const brands = await listBrandsForUser(userId);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

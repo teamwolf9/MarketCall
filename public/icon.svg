@@ -1,6 +1,7 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="112" fill="#b85c38"/>
-  <text x="50%" y="52%" dominant-baseline="central" text-anchor="middle"
+  <rect width="512" height="512" rx="112" fill="#1b1813"/>
+  <rect x="6" y="6" width="500" height="500" rx="106" fill="none" stroke="#38332b" stroke-width="2"/>
+  <text x="50%" y="53%" dominant-baseline="central" text-anchor="middle"
         font-family="Georgia, 'Times New Roman', serif" font-size="300"
-        font-weight="600" fill="#f4f1ea">M</text>
+        font-weight="600" fill="#d8bd86">M</text>
 </svg>

@@ -14,8 +14,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Chat-driven marketing operations for every brand you run.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f4f1ea",
-    theme_color: "#b85c38",
+    background_color: "#0e0d0b",
+    theme_color: "#0e0d0b",
     icons: [
       {
         src: "/icon.svg",

@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#b85c38",
+  themeColor: "#0e0d0b",
   // Full-screen launch feels native; keep content clear of notches.
   viewportFit: "cover",
 };
@@ -41,7 +41,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        variables: {
+          colorBackground: "#17150f",
+          colorForeground: "#f3efe7",
+          colorMutedForeground: "#a8a296",
+          colorPrimary: "#f3efe7",
+          colorPrimaryForeground: "#0e0d0b",
+          colorInput: "#201d15",
+          colorInputForeground: "#f3efe7",
+          colorNeutral: "#ffffff",
+          colorDanger: "#e3727a",
+          colorRing: "#c9a86c",
+          borderRadius: "10px",
+          fontFamily: "var(--font-hanken)",
+        },
+      }}
+    >
       <html
         lang="en"
         className={`${fraunces.variable} ${hanken.variable} ${geistMono.variable} h-full`}

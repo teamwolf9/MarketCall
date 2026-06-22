@@ -1,37 +1,40 @@
 @import "tailwindcss";
 
 /*
- * MarketCall — "Studio" design language.
- * Warm editorial calm: paper-light surfaces, ink text, a single clay accent,
- * soft elevation instead of hard borders. Tokens drive everything so the whole
- * app stays cohesive.
+ * MarketCall — "Atelier" design language.
+ * Premium dark, editorial restraint (à la Legora): a warm near-black canvas,
+ * warm off-white ink, generous whitespace, hairline detail, and a single quiet
+ * champagne accent used sparingly. Color is rare and intentional; type and
+ * space carry the design. Tokens drive everything so the whole app stays
+ * cohesive.
  */
 @theme {
-  --color-paper: #f4f1ea; /* app background (warm) */
-  --color-surface: #fcfbf8; /* cards, panels */
-  --color-surface-2: #efeae0; /* insets, subtle fills */
-  --color-ink: #221d18; /* primary text (warm near-black) */
-  --color-ink-soft: #6b6358; /* secondary text */
-  --color-muted: #a59c8e; /* tertiary text, hints */
-  --color-line: #e7e1d6; /* hairline borders */
-  --color-line-strong: #dad2c4;
-  --color-accent: #b85c38; /* clay */
-  --color-accent-hover: #9f4e2e;
-  --color-accent-soft: #f2e6dc; /* tint for active/badges */
-  --color-accent-ink: #fbf7f2; /* text on accent */
-  --color-danger: #b23a48;
-  --color-danger-soft: #f4e3e2;
-  --color-success: #3e7c5a;
-  --color-success-soft: #e4eee7;
+  --color-paper: #0e0d0b; /* app background — warm near-black */
+  --color-surface: #17150f; /* cards, panels */
+  --color-surface-2: #201d15; /* insets, subtle fills, hover */
+  --color-ink: #f3efe7; /* primary text — warm off-white */
+  --color-ink-soft: #a8a296; /* secondary text */
+  --color-muted: #6f695d; /* tertiary text, hints */
+  --color-line: #272420; /* hairline borders */
+  --color-line-strong: #38332b;
+  --color-accent: #c9a86c; /* champagne — the one quiet accent */
+  --color-accent-hover: #ddbf86; /* lighter, for links/hover */
+  --color-accent-soft: #241f15; /* dark warm tint for badges/active */
+  --color-accent-ink: #161109; /* text on the accent */
+  --color-danger: #e3727a;
+  --color-danger-soft: #2c1a1c;
+  --color-success: #7cc6a0;
+  --color-success-soft: #15231c;
 
   --font-display: var(--font-fraunces);
   --font-sans: var(--font-hanken);
   --font-mono: var(--font-geist-mono);
 
-  --shadow-xs: 0 1px 2px rgba(33, 29, 24, 0.05);
-  --shadow-sm: 0 1px 3px rgba(33, 29, 24, 0.06), 0 1px 2px rgba(33, 29, 24, 0.04);
-  --shadow-md: 0 10px 34px -14px rgba(33, 29, 24, 0.2);
-  --shadow-lg: 0 28px 64px -28px rgba(33, 29, 24, 0.32);
+  /* On dark, depth comes from hairlines + barely-there shadow, not soft glow. */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 18px 44px -20px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 36px 80px -32px rgba(0, 0, 0, 0.8);
 }
 
 html {
@@ -41,11 +44,12 @@ html {
 
 body {
   background-color: var(--color-paper);
+  /* Faint warm lift toward the top — depth without glow. */
   background-image: radial-gradient(
-    130% 120% at 100% 0%,
-    #f9f6f0 0%,
-    #f4f1ea 42%,
-    #efe9df 100%
+    120% 100% at 50% -10%,
+    #1a1711 0%,
+    #110f0c 45%,
+    #0e0d0b 100%
   );
   background-attachment: fixed;
   color: var(--color-ink);
@@ -98,13 +102,13 @@ body {
   .card {
     background: var(--color-surface);
     border: 1px solid var(--color-line);
-    border-radius: 18px;
+    border-radius: 14px;
     box-shadow: var(--shadow-sm);
   }
 
   .surface-inset {
     background: var(--color-surface-2);
-    border-radius: 14px;
+    border-radius: 12px;
   }
 
   /* Buttons */
@@ -134,13 +138,14 @@ body {
     cursor: default;
   }
 
+  /* High-contrast near-white primary — premium and quiet; color stays rare. */
   .btn-primary {
-    background: var(--color-accent);
-    color: var(--color-accent-ink);
+    background: var(--color-ink);
+    color: var(--color-paper);
     box-shadow: var(--shadow-xs);
   }
   .btn-primary:hover:not(:disabled) {
-    background: var(--color-accent-hover);
+    background: #ffffff;
   }
 
   .btn-ghost {
@@ -180,7 +185,7 @@ body {
   }
   .input:focus {
     border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px var(--color-accent-soft);
+    box-shadow: 0 0 0 3px rgba(201, 168, 108, 0.18);
   }
 
   /* Pills + badges */
@@ -234,19 +239,22 @@ body {
   }
 }
 
-/* Gentle entrance for primary content. */
+/* Blur-up entrance for primary content — the app's motion signature, shared
+ * with the landing so the whole product feels of a piece. */
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
+    filter: blur(6px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
   }
 }
 .rise {
-  animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
