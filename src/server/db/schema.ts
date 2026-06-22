@@ -8,6 +8,7 @@ import {
   index,
   boolean,
   jsonb,
+  vector,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -298,6 +299,47 @@ export const shareLinks = pgTable(
   (t) => [index("share_links_deliverable_idx").on(t.deliverableId)],
 );
 
+/**
+ * Brand memory — the RAG store. Each row is a chunk of brand knowledge (today:
+ * one per deliverable) with its embedding, scoped to a BRAND so it cascades to
+ * every project inside it ("RAG over your brand data"). On each chat turn we
+ * embed the user's message and pull the nearest rows for this brand to ground
+ * the reply in past work and voice. 768-dim to match the embedding model
+ * (gemini-embedding-001 truncated) and stay under pgvector's ANN index cap.
+ */
+export const memoryKindEnum = pgEnum("memory_kind", [
+  "deliverable",
+  "brief",
+  "note",
+]);
+
+export const memories = pgTable(
+  "memories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    brandId: uuid("brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    // Which project it came from (for display/attribution); null for brand-wide notes.
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "cascade",
+    }),
+    kind: memoryKindEnum("kind").notNull().default("deliverable"),
+    // The originating row (e.g. a deliverable id), so we can upsert/remove in sync.
+    sourceId: uuid("source_id"),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    embedding: vector("embedding", { dimensions: 768 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("memories_brand_idx").on(t.brandId)],
+);
+
 export type Thread = typeof threads.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type MessageRole = (typeof messageRoleEnum.enumValues)[number];
@@ -306,5 +348,6 @@ export type CalendarEvent = typeof calendarEvents.$inferSelect;
 export type Deliverable = typeof deliverables.$inferSelect;
 export type DeliverableKind = (typeof deliverableKindEnum.enumValues)[number];
 export type ShareLink = typeof shareLinks.$inferSelect;
+export type Memory = typeof memories.$inferSelect;
 export type AiProvider = typeof aiProviders.$inferSelect;
 export type AiProviderType = (typeof aiProviderTypeEnum.enumValues)[number];

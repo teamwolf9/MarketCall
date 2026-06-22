@@ -8,6 +8,7 @@ import {
 } from "@/server/db/schema";
 import { projectRole, roleAtLeast } from "@/server/auth/access";
 import { getProjectForUser, type ProjectContext } from "@/server/threads";
+import { indexDeliverable, removeDeliverableMemory } from "@/server/memory";
 
 /**
  * Deliverables CRUD, always gated through the parent project's cascade check (a
@@ -71,6 +72,8 @@ export async function createDeliverable(
       createdByUserId: userId,
     })
     .returning();
+  // Index into brand memory so future chats can recall it (best-effort).
+  await indexDeliverable(row);
   return row;
 }
 
@@ -96,6 +99,7 @@ export async function updateDeliverable(
     })
     .where(eq(deliverables.id, deliverableId))
     .returning();
+  if (row) await indexDeliverable(row);
   return row;
 }
 
@@ -111,5 +115,6 @@ export async function deleteDeliverable(
   if (!existing) return false;
   if (!(await canEdit(userId, existing.projectId))) return false;
   await db.delete(deliverables).where(eq(deliverables.id, deliverableId));
+  await removeDeliverableMemory(deliverableId);
   return true;
 }

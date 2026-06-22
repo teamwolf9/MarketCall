@@ -13,6 +13,7 @@ import {
 import { routeToSpecialist } from "@/server/ai/orchestrator";
 import { SPECIALISTS } from "@/server/ai/specialists";
 import { projectTools } from "@/server/ai/tools";
+import { searchBrandMemory } from "@/server/memory";
 import { getIntakeAnswers, formatBriefForPrompt } from "@/server/intake/intake";
 import {
   appendMessage,
@@ -71,12 +72,22 @@ export async function POST(req: Request) {
   const specialistKey = await routeToSpecialist(orgId, userText);
   const specialist = SPECIALISTS[specialistKey];
 
-  const [model, label, modelMessages, answers] = await Promise.all([
+  const [model, label, modelMessages, answers, memHits] = await Promise.all([
     resolveModelForOrg(orgId, specialist.model),
     modelLabelForOrg(orgId, specialist.model),
     convertToModelMessages(messages),
     getIntakeAnswers(ctx.project.id),
+    // RAG: pull the brand's most relevant past work for this turn (best-effort).
+    searchBrandMemory(ctx.brand.id, userText, 4),
   ]);
+
+  // Relevant past deliverables for this brand, injected so the assistant has
+  // continuity and voice across threads instead of starting cold each time.
+  const memoryBlock = memHits.length
+    ? `\n\n# Brand memory — relevant past work\nExcerpts from earlier deliverables for ${ctx.brand.name}. Build on them for continuity and voice; don't contradict them without flagging it.\n\n${memHits
+        .map((h) => `## ${h.title}\n${h.content.slice(0, 1200)}`)
+        .join("\n\n")}`
+    : "";
 
   // Today's date so the model can resolve relative dates ("next Monday").
   const today = new Date().toISOString().slice(0, 10);
@@ -97,7 +108,9 @@ export async function POST(req: Request) {
         brandName: ctx.brand.name,
         projectName: ctx.project.name,
         brief: formatBriefForPrompt(answers),
-      }) + toolGuidance,
+      }) +
+      memoryBlock +
+      toolGuidance,
     messages: modelMessages,
     tools: projectTools({
       userId,

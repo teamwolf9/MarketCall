@@ -5,7 +5,8 @@ import { getProjectForUser } from "@/server/threads";
 import { listDeliverables } from "@/server/deliverables";
 import { getIntakeAnswers, intakeStats } from "@/server/intake/intake";
 import { roleAtLeast } from "@/server/auth/access";
-import { createBlankDeliverable } from "@/server/actions";
+import { createBlankDeliverable, reindexMemory } from "@/server/actions";
+import { embeddingsConfigured } from "@/server/ai/embeddings";
 import { kindLabel } from "@/lib/deliverables";
 import { ProjectHeader } from "../project-header";
 
@@ -25,6 +26,7 @@ export default async function DeliverablesPage({
 
   const deliverables = (await listDeliverables(userId, projectId)) ?? [];
   const briefPct = intakeStats(await getIntakeAnswers(projectId)).pct;
+  const memoryOn = embeddingsConfigured();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -48,12 +50,26 @@ export default async function DeliverablesPage({
             </p>
           </div>
           {canEdit && (
-            <form action={createBlankDeliverable}>
-              <input type="hidden" name="projectId" value={project.id} />
-              <button type="submit" className="btn btn-primary shrink-0">
-                + New
-              </button>
-            </form>
+            <div className="flex shrink-0 items-center gap-2">
+              {memoryOn && deliverables.length > 0 && (
+                <form action={reindexMemory}>
+                  <input type="hidden" name="projectId" value={project.id} />
+                  <button
+                    type="submit"
+                    className="btn btn-outline"
+                    title="Re-embed these deliverables into brand memory so the chat can recall them"
+                  >
+                    Reindex memory
+                  </button>
+                </form>
+              )}
+              <form action={createBlankDeliverable}>
+                <input type="hidden" name="projectId" value={project.id} />
+                <button type="submit" className="btn btn-primary">
+                  + New
+                </button>
+              </form>
+            </div>
           )}
         </div>
 

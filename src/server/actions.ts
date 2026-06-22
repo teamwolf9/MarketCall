@@ -22,6 +22,7 @@ import {
   deleteDeliverable,
 } from "@/server/deliverables";
 import { createShareLink, revokeShareLink } from "@/server/sharing";
+import { reindexProjectMemories } from "@/server/memory";
 import { slugify } from "@/lib/slug";
 
 const DELIVERABLE_KINDS: DeliverableKind[] = [
@@ -254,4 +255,14 @@ export async function revokeShareLinkAction(formData: FormData): Promise<void> {
 
   await revokeShareLink(userId, linkId);
   revalidatePath(`/projects/${projectId}/deliverables/${deliverableId}`);
+}
+
+/** Re-embed all of a project's deliverables into brand memory. Editor+. */
+export async function reindexMemory(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!projectId) return;
+
+  await reindexProjectMemories(userId, projectId);
+  revalidatePath(`/projects/${projectId}/deliverables`);
 }
