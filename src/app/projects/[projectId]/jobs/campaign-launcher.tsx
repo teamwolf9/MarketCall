@@ -33,24 +33,38 @@ export function CampaignLauncher({
   const [launching, setLaunching] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, []);
+  const failuresRef = useRef(0);
+
+  function stopPolling() {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = null;
+  }
+
+  useEffect(() => stopPolling, []);
 
   const active = job?.status === "queued" || job?.status === "running";
 
   function startPolling(id: string) {
-    if (pollRef.current) clearInterval(pollRef.current);
+    stopPolling();
+    failuresRef.current = 0;
     pollRef.current = setInterval(async () => {
-      const r = await fetch(`/api/jobs/${id}`);
-      if (!r.ok) return;
-      const j: JobStatus = await r.json();
+      let j: JobStatus;
+      try {
+        const r = await fetch(`/api/jobs/${id}`);
+        if (!r.ok) throw new Error(String(r.status));
+        j = await r.json();
+      } catch {
+        // Tolerate transient blips, but give up after a few so we don't poll forever.
+        if (++failuresRef.current >= 5) {
+          stopPolling();
+          setError("Lost track of the job — reload to see its final status.");
+        }
+        return;
+      }
+      failuresRef.current = 0;
       setJob(j);
       if (j.status === "succeeded" || j.status === "failed") {
-        if (pollRef.current) clearInterval(pollRef.current);
-        pollRef.current = null;
+        stopPolling();
         router.refresh(); // surface new deliverables/events + the job list
       }
     }, 1500);

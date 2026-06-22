@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { createShareLinkAction, revokeShareLinkAction } from "@/server/actions";
+
+// Origin via useSyncExternalStore: "" during SSR/hydration (so markup matches),
+// then the real origin on the client — no setState-in-effect, no mismatch.
+const noopSubscribe = () => () => {};
+const clientOrigin = () => window.location.origin;
+const serverOrigin = () => "";
 
 /** Live (non-revoked, non-expired) links for this deliverable, minimal shape. */
 type LiveLink = { id: string; token: string };
@@ -16,6 +22,7 @@ export function SharePanel({
   links: LiveLink[];
 }) {
   const [copied, setCopied] = useState<string | null>(null);
+  const origin = useSyncExternalStore(noopSubscribe, clientOrigin, serverOrigin);
 
   async function copy(id: string, url: string) {
     try {
@@ -52,10 +59,7 @@ export function SharePanel({
       ) : (
         <ul className="mt-3 space-y-2">
           {links.map((l) => {
-            const url =
-              typeof window !== "undefined"
-                ? `${window.location.origin}/share/${l.token}`
-                : `/share/${l.token}`;
+            const url = `${origin}/share/${l.token}`;
             return (
               <li key={l.id} className="flex items-center gap-2">
                 <input

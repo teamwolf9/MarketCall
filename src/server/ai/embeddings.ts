@@ -16,6 +16,11 @@ import "server-only";
 /** Must match the `vector("embedding", { dimensions })` column in the schema. */
 export const EMBEDDING_DIMENSIONS = 768;
 
+// Cap how long we'll wait on the embeddings endpoint. This call sits on the
+// chat hot path (RAG retrieval) and the deliverable-save path, so a hung
+// provider must not hang the request — on timeout we degrade to "no memory".
+const EMBED_TIMEOUT_MS = 6000;
+
 function config(): { baseURL: string; apiKey: string; model: string } | null {
   const baseURL = process.env.AI_BASE_URL?.replace(/\/+$/, "");
   const apiKey =
@@ -35,18 +40,27 @@ export async function embedTexts(inputs: string[]): Promise<number[][] | null> {
   const c = config();
   if (!c || inputs.length === 0) return null;
 
-  const res = await fetch(`${c.baseURL}/embeddings`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${c.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: c.model,
-      input: inputs,
-      dimensions: EMBEDDING_DIMENSIONS,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${c.baseURL}/embeddings`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${c.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: c.model,
+        input: inputs,
+        dimensions: EMBEDDING_DIMENSIONS,
+      }),
+      signal: AbortSignal.timeout(EMBED_TIMEOUT_MS),
+    });
+  } catch (err) {
+    // Timeout/network — surface as a normal failure so callers degrade gracefully.
+    throw new Error(
+      `Embedding request failed: ${err instanceof Error ? err.message : "network error"}`,
+    );
+  }
   if (!res.ok) {
     throw new Error(
       `Embedding request failed: ${res.status} ${await res.text().catch(() => "")}`,

@@ -37,43 +37,57 @@ async function brandIdForProject(projectId: string): Promise<string | null> {
   return p?.brandId ?? null;
 }
 
+/** What we embed for a deliverable — title carries a lot of the intent. */
+function memoryText(d: IndexableDeliverable): string {
+  return `${d.title}\n\n${d.content}`.slice(0, MAX_CHARS);
+}
+
+/** Upsert one deliverable's memory row from a precomputed embedding. */
+async function upsertMemory(
+  brandId: string,
+  d: IndexableDeliverable,
+  text: string,
+  embedding: number[],
+): Promise<void> {
+  const existing = await db.query.memories.findFirst({
+    where: and(eq(memories.kind, "deliverable"), eq(memories.sourceId, d.id)),
+    columns: { id: true },
+  });
+  if (existing) {
+    await db
+      .update(memories)
+      .set({
+        brandId,
+        projectId: d.projectId,
+        title: d.title,
+        content: text,
+        embedding,
+        updatedAt: new Date(),
+      })
+      .where(eq(memories.id, existing.id));
+  } else {
+    await db.insert(memories).values({
+      brandId,
+      projectId: d.projectId,
+      kind: "deliverable",
+      sourceId: d.id,
+      title: d.title,
+      content: text,
+      embedding,
+    });
+  }
+}
+
 /** Upsert a deliverable's memory row (keyed by source). Best-effort, never throws. */
 export async function indexDeliverable(d: IndexableDeliverable): Promise<void> {
   if (!embeddingsConfigured()) return;
   try {
     const brandId = await brandIdForProject(d.projectId);
     if (!brandId) return;
-    const text = `${d.title}\n\n${d.content}`.slice(0, MAX_CHARS);
+    const text = memoryText(d);
     const [embedding] = (await embedTexts([text])) ?? [];
     if (!embedding) return;
-
-    const existing = await db.query.memories.findFirst({
-      where: and(eq(memories.kind, "deliverable"), eq(memories.sourceId, d.id)),
-      columns: { id: true },
-    });
-    if (existing) {
-      await db
-        .update(memories)
-        .set({
-          brandId,
-          projectId: d.projectId,
-          title: d.title,
-          content: text,
-          embedding,
-          updatedAt: new Date(),
-        })
-        .where(eq(memories.id, existing.id));
-    } else {
-      await db.insert(memories).values({
-        brandId,
-        projectId: d.projectId,
-        kind: "deliverable",
-        sourceId: d.id,
-        title: d.title,
-        content: text,
-        embedding,
-      });
-    }
+    await upsertMemory(brandId, d, text, embedding);
   } catch (err) {
     console.error("indexDeliverable failed:", err);
   }
@@ -142,8 +156,25 @@ export async function reindexProjectMemories(
     .select()
     .from(deliverables)
     .where(eq(deliverables.projectId, projectId));
-  for (const d of rows) {
-    await indexDeliverable(d);
+  if (rows.length === 0) return 0;
+
+  const brandId = await brandIdForProject(projectId);
+  if (!brandId) return 0;
+
+  // One batched embedding call for the whole project, then upsert each row,
+  // instead of an embedding round-trip per deliverable.
+  const texts = rows.map(memoryText);
+  const vectors = await embedTexts(texts);
+  if (!vectors || vectors.length !== rows.length) return 0;
+
+  let indexed = 0;
+  for (let i = 0; i < rows.length; i++) {
+    try {
+      await upsertMemory(brandId, rows[i], texts[i], vectors[i]);
+      indexed++;
+    } catch (err) {
+      console.error("reindex upsert failed:", err);
+    }
   }
-  return rows.length;
+  return indexed;
 }

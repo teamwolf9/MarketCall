@@ -1,5 +1,7 @@
 "use client";
 
+import { slugify } from "@/lib/slug";
+
 /**
  * Export controls for a deliverable. "Save as PDF" uses the browser's print →
  * save-as-PDF on a clean, chrome-free view (the public share page is already
@@ -7,16 +9,6 @@
  * builds the markdown file client-side from content already on the page — no
  * round-trip, works for the public viewer and the logged-in team alike.
  */
-function slugify(s: string): string {
-  return (
-    s
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 60) || "deliverable"
-  );
-}
-
 export function ShareActions({
   title,
   content,

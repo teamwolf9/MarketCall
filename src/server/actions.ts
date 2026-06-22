@@ -23,16 +23,10 @@ import {
 } from "@/server/deliverables";
 import { createShareLink, revokeShareLink } from "@/server/sharing";
 import { reindexProjectMemories } from "@/server/memory";
+import { DELIVERABLE_KINDS as DELIVERABLE_KIND_OPTIONS } from "@/lib/deliverables";
 import { slugify } from "@/lib/slug";
 
-const DELIVERABLE_KINDS: DeliverableKind[] = [
-  "plan",
-  "ad_copy",
-  "calendar",
-  "seo",
-  "brief",
-  "other",
-];
+const DELIVERABLE_KIND_VALUES = DELIVERABLE_KIND_OPTIONS.map((k) => k.value);
 
 async function requireUserId(): Promise<string> {
   const { userId } = await auth();
@@ -213,7 +207,7 @@ export async function saveDeliverable(formData: FormData): Promise<void> {
   const content = String(formData.get("content") ?? "");
   if (!deliverableId || !projectId || !title) return;
 
-  const kind = DELIVERABLE_KINDS.includes(kindRaw as DeliverableKind)
+  const kind = DELIVERABLE_KIND_VALUES.includes(kindRaw as DeliverableKind)
     ? (kindRaw as DeliverableKind)
     : undefined;
 
