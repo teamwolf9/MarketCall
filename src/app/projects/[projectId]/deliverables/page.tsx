@@ -38,7 +38,8 @@ export default async function DeliverablesPage({
         briefPct={briefPct}
       />
 
-      <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-4xl px-6 py-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
@@ -105,6 +106,7 @@ export default async function DeliverablesPage({
             ))}
           </ul>
         )}
+        </div>
       </div>
     </div>
   );

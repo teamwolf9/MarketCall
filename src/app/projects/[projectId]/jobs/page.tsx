@@ -44,7 +44,8 @@ export default async function JobsPage({
         briefPct={briefPct}
       />
 
-      <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-3xl px-6 py-8">
         <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
           Jobs
         </h1>
@@ -105,6 +106,7 @@ export default async function JobsPage({
             ))}
           </ul>
         )}
+        </div>
       </div>
     </div>
   );

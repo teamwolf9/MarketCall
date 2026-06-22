@@ -65,7 +65,7 @@ function Ribbon({ editor }: { editor: Editor }) {
   const isAlign = (a: string) => editor.isActive({ textAlign: a });
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 rounded-t-xl border border-line bg-surface px-2 py-1.5">
+    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 rounded-t-xl border border-line bg-surface px-2 py-1.5">
       <select
         title="Font"
         value={style.fontFamily ?? ""}

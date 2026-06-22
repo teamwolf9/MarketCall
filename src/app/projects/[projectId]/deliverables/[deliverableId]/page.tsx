@@ -46,7 +46,8 @@ export default async function DeliverablePage({
         briefPct={briefPct}
       />
 
-      <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-4xl px-6 py-8">
         <div className="flex items-center justify-between gap-4">
           <Link
             href={`/projects/${project.id}/deliverables`}
@@ -105,6 +106,7 @@ export default async function DeliverablePage({
             </button>
           </form>
         )}
+        </div>
       </div>
     </div>
   );
