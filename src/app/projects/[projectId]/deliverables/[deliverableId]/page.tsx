@@ -2,11 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { getDeliverableForUser } from "@/server/deliverables";
+import { listShareLinks, isLinkLive } from "@/server/sharing";
 import { getIntakeAnswers, intakeStats } from "@/server/intake/intake";
 import { roleAtLeast } from "@/server/auth/access";
 import { saveDeliverable, removeDeliverable } from "@/server/actions";
 import { DELIVERABLE_KINDS, kindLabel } from "@/lib/deliverables";
 import { ProjectHeader } from "../../project-header";
+import { SharePanel } from "./share-panel";
 
 export default async function DeliverablePage({
   params,
@@ -23,6 +25,13 @@ export default async function DeliverablePage({
   const { project, brand, role } = ctx;
   const canEdit = roleAtLeast(role, "editor");
   const briefPct = intakeStats(await getIntakeAnswers(projectId)).pct;
+
+  // Editors manage public links; show only the live ones (revoked/expired hidden).
+  const liveLinks = canEdit
+    ? ((await listShareLinks(userId, deliverable.id)) ?? [])
+        .filter(isLinkLive)
+        .map((l) => ({ id: l.id, token: l.token }))
+    : [];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -96,6 +105,14 @@ export default async function DeliverablePage({
               )}
             </div>
           </article>
+        )}
+
+        {canEdit && (
+          <SharePanel
+            deliverableId={deliverable.id}
+            projectId={project.id}
+            links={liveLinks}
+          />
         )}
 
         {canEdit && (

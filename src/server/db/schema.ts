@@ -273,6 +273,31 @@ export const deliverables = pgTable(
   (t) => [index("deliverables_project_idx").on(t.projectId, t.createdAt)],
 );
 
+/**
+ * Public share links for a deliverable. A link is an unguessable token that
+ * serves a deliverable at /share/<token> with NO login — so it's the one place
+ * a scoped resource is reachable without the cascade check. Links are revocable
+ * (revokedAt) and optionally expiring (expiresAt); the public resolver honors
+ * both. View-only by construction — the public page renders, never mutates.
+ */
+export const shareLinks = pgTable(
+  "share_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    deliverableId: uuid("deliverable_id")
+      .notNull()
+      .references(() => deliverables.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdByUserId: text("created_by_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("share_links_deliverable_idx").on(t.deliverableId)],
+);
+
 export type Thread = typeof threads.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type MessageRole = (typeof messageRoleEnum.enumValues)[number];
@@ -280,5 +305,6 @@ export type ProjectIntake = typeof projectIntake.$inferSelect;
 export type CalendarEvent = typeof calendarEvents.$inferSelect;
 export type Deliverable = typeof deliverables.$inferSelect;
 export type DeliverableKind = (typeof deliverableKindEnum.enumValues)[number];
+export type ShareLink = typeof shareLinks.$inferSelect;
 export type AiProvider = typeof aiProviders.$inferSelect;
 export type AiProviderType = (typeof aiProviderTypeEnum.enumValues)[number];

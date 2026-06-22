@@ -21,6 +21,7 @@ import {
   updateDeliverable,
   deleteDeliverable,
 } from "@/server/deliverables";
+import { createShareLink, revokeShareLink } from "@/server/sharing";
 import { slugify } from "@/lib/slug";
 
 const DELIVERABLE_KINDS: DeliverableKind[] = [
@@ -230,4 +231,27 @@ export async function removeDeliverable(formData: FormData): Promise<void> {
   await deleteDeliverable(userId, deliverableId);
   revalidatePath(`/projects/${projectId}/deliverables`);
   redirect(`/projects/${projectId}/deliverables`);
+}
+
+/** Mint a public share link for a deliverable. Editor+ on the project. */
+export async function createShareLinkAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const deliverableId = String(formData.get("deliverableId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!deliverableId || !projectId) return;
+
+  await createShareLink(userId, deliverableId);
+  revalidatePath(`/projects/${projectId}/deliverables/${deliverableId}`);
+}
+
+/** Revoke a public share link (it stops resolving immediately). Editor+. */
+export async function revokeShareLinkAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const linkId = String(formData.get("linkId") ?? "");
+  const deliverableId = String(formData.get("deliverableId") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!linkId || !deliverableId || !projectId) return;
+
+  await revokeShareLink(userId, linkId);
+  revalidatePath(`/projects/${projectId}/deliverables/${deliverableId}`);
 }
