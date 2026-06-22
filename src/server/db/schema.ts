@@ -252,6 +252,7 @@ export const deliverableKindEnum = pgEnum("deliverable_kind", [
   "calendar",
   "seo",
   "brief",
+  "presentation",
   "other",
 ]);
 

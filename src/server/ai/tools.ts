@@ -115,6 +115,52 @@ export function projectTools(ctx: ToolContext) {
       },
     }),
 
+    create_presentation: tool({
+      description:
+        "Build a slide deck / PowerPoint presentation and save it to THIS project as a deliverable. Use this when the user asks for a deck, slides, pitch, or presentation. Provide a strong title slide and one idea per content slide with a short title and a few tight bullets; put extra detail in speaker notes. The saved deliverable can be downloaded as a .pptx PowerPoint file. After saving, tell the user it's on the Deliverables tab and downloadable as PowerPoint.",
+      inputSchema: z.object({
+        title: z
+          .string()
+          .describe("The deck title, e.g. 'Spring Sale — Campaign Pitch'."),
+        slides: z
+          .array(
+            z.object({
+              title: z.string().describe("Short slide title."),
+              bullets: z
+                .array(z.string())
+                .describe("3–5 short, punchy bullet points for the slide."),
+              notes: z
+                .string()
+                .nullish()
+                .describe("Optional speaker notes / extra detail."),
+            }),
+          )
+          .min(1)
+          .describe("The slides in order. Open with a title/overview slide."),
+      }),
+      execute: async ({ title, slides }) => {
+        // Store as markdown: one H2 per slide + bullets (+ a notes blockquote).
+        // This renders as a document and round-trips cleanly into .pptx slides.
+        const content = slides
+          .map((s) => {
+            const bullets = s.bullets.map((b) => `- ${b}`).join("\n");
+            const notes = s.notes ? `\n\n> Notes: ${s.notes}` : "";
+            return `## ${s.title}\n${bullets}${notes}`;
+          })
+          .join("\n\n");
+        const row = await createDeliverable(ctx.userId, {
+          projectId: ctx.projectId,
+          title,
+          kind: "presentation",
+          content,
+        });
+        if (!row) {
+          return { ok: false, error: "You don't have edit access to save in this project." };
+        }
+        return { ok: true, id: row.id, title: row.title, slideCount: slides.length };
+      },
+    }),
+
     list_calendar_events: tool({
       description:
         "List items already on THIS project's calendar within a date range. Use it to check what's planned before adding new items (so you don't double-book) or to answer questions about the current schedule.",

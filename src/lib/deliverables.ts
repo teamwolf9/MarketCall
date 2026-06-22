@@ -7,6 +7,7 @@ export const DELIVERABLE_KINDS: { value: DeliverableKind; label: string }[] = [
   { value: "calendar", label: "Calendar" },
   { value: "seo", label: "SEO" },
   { value: "brief", label: "Brief" },
+  { value: "presentation", label: "Presentation" },
   { value: "other", label: "Other" },
 ];
 

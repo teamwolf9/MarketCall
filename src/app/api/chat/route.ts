@@ -94,11 +94,13 @@ export async function POST(req: Request) {
   const toolGuidance =
     `\n\nToday is ${today}. You can act on this project, not just advise: use ` +
     `schedule_calendar_event to put items on the content calendar, ` +
-    `list_calendar_events to see what's already planned, and save_deliverable to ` +
+    `list_calendar_events to see what's already planned, save_deliverable to ` +
     `save substantial work (a plan, ad-copy set, calendar write-up, or SEO brief) ` +
-    `as a durable artifact on the Deliverables tab. When the user asks to schedule ` +
-    `or plan dates, call the calendar tool for each item; when you produce a real ` +
-    `piece of work, save it as a deliverable. Then confirm what you did. These ` +
+    `as a durable artifact, and create_presentation to build a slide deck the user ` +
+    `can download as PowerPoint. When the user asks to schedule ` +
+    `or plan dates, call the calendar tool for each item; when they ask for a deck ` +
+    `or slides, call create_presentation; when you produce other real work, save ` +
+    `it as a deliverable. Then confirm what you did. These ` +
     `write to drafts in MarketCall only — they never publish to a live account.`;
 
   const result = streamText({

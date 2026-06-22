@@ -36,7 +36,11 @@ export default async function SharedDeliverablePage({
               </h1>
               <span className="badge shrink-0">{kindLabel(deliverable.kind)}</span>
             </div>
-            <ShareActions title={deliverable.title} content={deliverable.content} />
+            <ShareActions
+              title={deliverable.title}
+              content={deliverable.content}
+              brandName={deliverable.brandName}
+            />
           </div>
         </header>
 

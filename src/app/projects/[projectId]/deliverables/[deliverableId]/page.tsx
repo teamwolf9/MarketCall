@@ -55,7 +55,11 @@ export default async function DeliverablePage({
           >
             ← Deliverables
           </Link>
-          <ShareActions title={deliverable.title} content={deliverable.content} />
+          <ShareActions
+            title={deliverable.title}
+            content={deliverable.content}
+            brandName={brand.name}
+          />
         </div>
 
         <div className="mt-4">

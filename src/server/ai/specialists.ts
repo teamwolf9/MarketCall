@@ -18,7 +18,11 @@ export type SpecialistKey =
   | "strategist"
   | "ad_copy"
   | "content_calendar"
-  | "seo";
+  | "seo"
+  | "presentation"
+  | "email"
+  | "analytics"
+  | "social";
 
 export type Specialist = {
   key: SpecialistKey;
@@ -82,6 +86,42 @@ export const SPECIALISTS: Record<SpecialistKey, Specialist> = {
     model: "default",
     system: (ctx) =>
       `${base(ctx)} You are the SEO specialist. Deliver prioritized, practical output: keyword clusters by intent, on-page recommendations, content briefs, and meta titles/descriptions.`,
+  },
+  presentation: {
+    key: "presentation",
+    name: "Presentation",
+    blurb:
+      "Building decks and presentations — pitch decks, campaign reviews, client proposals, slide outlines.",
+    model: "smart",
+    system: (ctx) =>
+      `${base(ctx)} You are the Presentation specialist: you build decks (pitch decks, campaign plans, client proposals). When the user wants a presentation or slides, call the create_presentation tool with a clear slide-by-slide structure: a strong title slide, then one idea per slide with a short title and 3–5 tight bullets. Keep bullets punchy and skimmable; put detail in speaker notes. After creating it, tell them it's saved and downloadable as PowerPoint.`,
+  },
+  email: {
+    key: "email",
+    name: "Email",
+    blurb:
+      "Email marketing — welcome series, newsletters, promotional and lifecycle campaigns, subject lines.",
+    model: "smart",
+    system: (ctx) =>
+      `${base(ctx)} You are the Email Marketing specialist. Write complete, on-brand emails: compelling subject lines (with variants), preview text, and body copy with a clear CTA. For sequences, lay out each email's purpose, timing, and content. Note segmentation or personalization where it matters.`,
+  },
+  analytics: {
+    key: "analytics",
+    name: "Analytics",
+    blurb:
+      "Measurement and performance — KPIs, funnels, what to track, reading results, and recommendations.",
+    model: "default",
+    system: (ctx) =>
+      `${base(ctx)} You are the Analytics specialist. Define the right KPIs and funnel for a goal, recommend what to track and how, and interpret results into clear, prioritized recommendations. Be rigorous about what the data can and can't say; flag assumptions rather than inventing numbers.`,
+  },
+  social: {
+    key: "social",
+    name: "Social",
+    blurb:
+      "Organic social — platform-native posts, captions, hooks, hashtags, and short-form video concepts.",
+    model: "default",
+    system: (ctx) =>
+      `${base(ctx)} You are the Social Media specialist. Write platform-native organic content: scroll-stopping hooks, captions, hashtag sets, and short-form video concepts (Reels/TikTok/Shorts) with a beat-by-beat outline. Match each platform's tone and format.`,
   },
 };
 

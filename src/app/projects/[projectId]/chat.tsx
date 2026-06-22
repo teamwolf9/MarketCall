@@ -73,15 +73,21 @@ function toolChips(message: UIMessage, projectId: string) {
         p.state && p.state !== "output-available" && p.state !== "output-error";
       const failed = out?.ok === false;
 
-      // A saved deliverable links straight to its page so a click opens it.
-      if (!pending && !failed && p.type === "tool-save_deliverable" && out?.id) {
+      // A saved deliverable / deck links straight to its page so a click opens it.
+      if (
+        !pending &&
+        !failed &&
+        out?.id &&
+        (p.type === "tool-save_deliverable" || p.type === "tool-create_presentation")
+      ) {
+        const isDeck = p.type === "tool-create_presentation";
         return (
           <Link
             key={i}
             href={`/projects/${projectId}/deliverables/${out.id}`}
             className={`${CHIP_BASE} ${CHIP_OK} transition hover:border-accent/40 hover:text-ink`}
           >
-            📄 Saved deliverable — {out.title ?? "untitled"} ↗
+            {isDeck ? "📊 Built deck" : "📄 Saved deliverable"} — {out.title ?? "untitled"} ↗
           </Link>
         );
       }

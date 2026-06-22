@@ -37,19 +37,53 @@ const DOC_CSS = `
   hr { border: 0; border-top: 1px solid #e3e0d8; margin: 28px 0; }
 `;
 
-function buildDoc(title: string, content: string): string {
-  const body = looksLikeHtml(content)
+function toHtml(content: string): string {
+  return looksLikeHtml(content)
     ? content
     : (marked.parse(content, { async: false }) as string);
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${DOC_CSS}</style></head><body><h1>${esc(title)}</h1>${body}</body></html>`;
+}
+
+function buildDoc(title: string, content: string): string {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>${DOC_CSS}</style></head><body><h1>${esc(title)}</h1>${toHtml(content)}</body></html>`;
+}
+
+type Slide = { title: string; bullets: { text: string; bold?: boolean }[]; notes?: string };
+
+/** Parse a deliverable's HTML into slides: each heading starts a slide. */
+function toSlides(content: string): Slide[] {
+  const body = new DOMParser().parseFromString(toHtml(content), "text/html").body;
+  const slides: Slide[] = [];
+  let cur: Slide | null = null;
+  const ensure = () => (cur ??= (slides.push({ title: "", bullets: [] }), slides[slides.length - 1]));
+  for (const el of Array.from(body.children)) {
+    const tag = el.tagName.toLowerCase();
+    const text = (el.textContent ?? "").trim();
+    if (tag === "h1" || tag === "h2") {
+      cur = { title: text, bullets: [] };
+      slides.push(cur);
+    } else if (tag === "h3" || tag === "h4") {
+      ensure().bullets.push({ text, bold: true });
+    } else if (tag === "ul" || tag === "ol") {
+      el.querySelectorAll(":scope > li").forEach((li) =>
+        ensure().bullets.push({ text: (li.textContent ?? "").trim() }),
+      );
+    } else if (tag === "blockquote") {
+      if (cur) cur.notes = `${cur.notes ? cur.notes + "\n" : ""}${text}`;
+    } else if (text) {
+      ensure().bullets.push({ text });
+    }
+  }
+  return slides.filter((s) => s.title || s.bullets.length);
 }
 
 export function ShareActions({
   title,
   content,
+  brandName,
 }: {
   title: string;
   content: string;
+  brandName?: string;
 }) {
   function close(el: HTMLElement) {
     el.closest("details")?.removeAttribute("open");
@@ -92,6 +126,54 @@ export function ShareActions({
     );
   }
 
+  async function downloadPptx(e: React.MouseEvent<HTMLButtonElement>) {
+    close(e.currentTarget);
+    const PptxGen = (await import("pptxgenjs")).default;
+    const pptx = new PptxGen();
+    pptx.layout = "LAYOUT_WIDE";
+    const ACCENT = "C96442";
+    const INK = "201D18";
+
+    // Title slide.
+    const cover = pptx.addSlide();
+    cover.background = { color: "FAF9F5" };
+    cover.addText(title, {
+      x: 0.6, y: 2.1, w: "88%", h: 1.5,
+      fontSize: 40, bold: true, color: INK, fontFace: "Georgia",
+    });
+    cover.addShape(pptx.ShapeType.line, {
+      x: 0.62, y: 3.5, w: 3, h: 0, line: { color: ACCENT, width: 2.5 },
+    });
+    if (brandName) {
+      cover.addText(brandName, { x: 0.6, y: 3.7, fontSize: 18, color: ACCENT });
+    }
+
+    // Content slides.
+    for (const s of toSlides(content)) {
+      const slide = pptx.addSlide();
+      slide.background = { color: "FFFFFF" };
+      slide.addText(s.title || title, {
+        x: 0.6, y: 0.4, w: "88%", h: 0.8,
+        fontSize: 28, bold: true, color: INK, fontFace: "Georgia",
+      });
+      slide.addShape(pptx.ShapeType.line, {
+        x: 0.62, y: 1.2, w: 2.2, h: 0, line: { color: ACCENT, width: 2 },
+      });
+      if (s.bullets.length) {
+        slide.addText(
+          s.bullets.map((b) => ({
+            text: b.text,
+            options: { bullet: true, bold: b.bold, fontSize: 18, color: "2A2723", paraSpaceAfter: 8 },
+          })),
+          { x: 0.7, y: 1.5, w: "86%", h: 5, valign: "top" },
+        );
+      }
+      if (s.notes) slide.addNotes(s.notes);
+    }
+
+    await pptx.writeFile({ fileName: `${slugify(title)}.pptx` });
+  }
+
   const itemClass =
     "block w-full rounded-md px-3 py-1.5 text-left text-sm text-ink-soft transition hover:bg-surface-2 hover:text-ink";
 
@@ -101,6 +183,9 @@ export function ShareActions({
         Download
       </summary>
       <div className="card absolute right-0 z-20 mt-1 w-44 p-1 shadow-md">
+        <button type="button" onClick={downloadPptx} className={itemClass}>
+          PowerPoint (.pptx)
+        </button>
         <button type="button" onClick={downloadPdf} className={itemClass}>
           PDF
         </button>
