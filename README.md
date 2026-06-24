@@ -6,15 +6,21 @@ brands and their projects from one place — driven by chat. See
 
 ## Status
 
-**Milestone 1 — Auth + hierarchy (in progress).** This is the foundation
-everything else sits on:
+Active development. Built so far:
 
-- ✅ Next.js (App Router, TypeScript, Tailwind) on the recommended stack
-- ✅ Clerk identity, middleware-gated app (`/sign-in`, `/sign-up`, public `/share/*`)
-- ✅ Drizzle schema: `orgs → brands → projects` + `memberships`
-- ✅ **Cascade access check** — `src/server/auth/access.ts`
-- ⬜ Brand / project CRUD through the access check
-- ⬜ Invites (pending membership → activates on sign-in)
+- ✅ **Auth + hierarchy** — Clerk identity, Org → Brand → Project, memberships,
+  invites, and the cascade access check (`src/server/auth/access.ts`)
+- ✅ **Chat orchestrator** — routes each request to one of 16 specialist agents
+  (strategy, ad copy, SEO, paid media, email, video, brand, and more);
+  multi-provider, bring-your-own model endpoint
+- ✅ **Marketing brief** — a guided, project-aware intake that grounds every agent
+- ✅ **Brand guide** — per-brand design system (colors, fonts, voice) + an asset
+  library (logos, fonts, images, docs); on-brand PPTX/PDF/Word exports
+- ✅ **Deliverables** — rich document editor with image/logo insert, resize,
+  text-wrap, an in-document "ask the agents" chat, and public share links
+- ✅ **Calendar** — month/week views with per-project filtering
+- ✅ **Durable jobs** — background campaign runs with a live activity indicator
+- 🚧 RAG memory, automations, voice, and PWA polish — in progress
 
 ## Load-bearing decision: the cascade access rule
 
@@ -50,17 +56,20 @@ Clerk's org primitive is single-level and our hierarchy is two levels deep.
 
 ```bash
 pnpm install
-cp .env.example .env.local      # fill in Clerk keys + DATABASE_URL
-pnpm db:push                    # create the schema in your Postgres
-pnpm dev                        # http://localhost:3000
+cp .env.example .env.local       # fill in DATABASE_URL, APP_ENCRYPTION_KEY, AI provider
+pnpm dev                         # http://localhost:3000
 ```
 
-You'll need a [Clerk](https://clerk.com) application (publishable + secret keys)
-and a Postgres database ([Supabase](https://supabase.com) or
-[Neon](https://neon.tech)). Drop both into `.env.local`.
+Fill `.env.local` from [`.env.example`](.env.example). In development **Clerk
+runs keyless** (no keys needed — sign up with `you+clerk_test@example.com` and
+code `424242`), and the shared Postgres database already has the schema, so
+there's nothing to migrate. You do need a `DATABASE_URL`, an `APP_ENCRYPTION_KEY`,
+and an AI provider (any OpenAI-compatible endpoint, or Anthropic).
 
-**Moving to another machine (Windows + VS Code)?** Follow
-[`docs/SETUP.md`](docs/SETUP.md) — step-by-step clone-to-running guide.
+**Setting up on another machine (Windows + VS Code)?** Follow
+**[`docs/SETUP.md`](docs/SETUP.md)** — a step-by-step clone-to-running guide,
+including the Supabase pooler and encryption-key gotchas. The shortcut: copy your
+working `.env.local` across.
 
 ## Scripts
 
@@ -75,7 +84,7 @@ and a Postgres database ([Supabase](https://supabase.com) or
 
 ## Build sequence
 
-1. **Auth + Org → Brand → Project hierarchy + cascade check.** ← we are here
+1. **Auth + Org → Brand → Project hierarchy + cascade check.** ✅
 2. Provider abstraction + orchestrator + two specialist agents.
 3. Data schema + pgvector memory + RAG; MCP tools so the chat can act.
 4. Durable job layer for long agent runs.

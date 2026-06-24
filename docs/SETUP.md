@@ -3,11 +3,13 @@
 This guide gets the project running on a fresh PC. It assumes Windows with
 **Visual Studio Code** (not "Visual Studio" the C#/.NET IDE — VS Code is the
 right tool for a Next.js app; if you only have full Visual Studio, install VS
-Code from <https://code.visualstudio.com>).
+Code from <https://code.visualstudio.com>). macOS is the same, minus the
+IPv6/pooler note in step 4.
 
-> The secret values (Clerk keys, database URL) are **not** in the repo — they're
-> gitignored. Get them from the person who set the project up and paste them into
-> `.env.local` in step 4.
+> **Fastest path:** if you already have MarketCall running on another machine,
+> just copy that machine's **`.env.local`** to this one (step 4) — it has every
+> secret already. Then do steps 1–3 and 6. The values in `.env.local` must match
+> across machines that share the same database (see the warning in step 4).
 
 ---
 
@@ -15,7 +17,7 @@ Code from <https://code.visualstudio.com>).
 
 | Tool         | Version | How to install on Windows                                   |
 | ------------ | ------- | ----------------------------------------------------------- |
-| **Node.js**  | 20+ (22 LTS recommended) | <https://nodejs.org> (LTS installer), or `winget install OpenJS.NodeJS.LTS` |
+| **Node.js**  | 20+ (22 LTS or newer recommended) | <https://nodejs.org> (LTS installer), or `winget install OpenJS.NodeJS.LTS` |
 | **pnpm**     | latest  | After Node: open PowerShell and run `corepack enable pnpm`  |
 | **Git**      | latest  | <https://git-scm.com/download/win>, or `winget install Git.Git` |
 | **VS Code**  | latest  | <https://code.visualstudio.com>                             |
@@ -31,19 +33,9 @@ git --version
 If `pnpm` is "not recognized" after `corepack enable pnpm`, close and reopen the
 terminal (PATH needs to refresh), or run `npm install -g pnpm`.
 
-### Recommended VS Code extensions
-
-Open VS Code → Extensions (Ctrl+Shift+X) and install:
-
-- **ESLint** (`dbaeumer.vscode-eslint`)
-- **Tailwind CSS IntelliSense** (`bradlc.vscode-tailwindcss`)
-- **Prettier** (`esbenp.prettier-vscode`)
-
 ---
 
 ## 2. Clone the repository
-
-In PowerShell, from wherever you keep code (e.g. `C:\dev`):
 
 ```powershell
 cd C:\dev
@@ -52,8 +44,8 @@ cd MarketCall
 code .
 ```
 
-`code .` opens the project in VS Code. The rest of the commands can be run in
-VS Code's integrated terminal (**Terminal → New Terminal**, or `` Ctrl+` ``).
+`code .` opens the project in VS Code. Run the rest in VS Code's integrated
+terminal (**Terminal → New Terminal**, or `` Ctrl+` ``).
 
 ---
 
@@ -63,52 +55,69 @@ VS Code's integrated terminal (**Terminal → New Terminal**, or `` Ctrl+` ``).
 pnpm install
 ```
 
-The first run will ask to approve native build scripts (esbuild, sharp). The
-repo already allows them in `pnpm-workspace.yaml`, so this should be automatic.
+> Re-run `pnpm install` after every `git pull` — new features often add
+> packages (e.g. the rich editor, image, and PPTX libraries).
 
 ---
 
 ## 4. Create `.env.local`
 
-The app reads secrets from a file named **`.env.local`** in the project root.
-It is gitignored, so you must create it by hand.
-
-Copy the template and then fill in the real values:
+The app reads its secrets from **`.env.local`** in the project root. It is
+gitignored, so you create it by hand. Copy the template and fill it in:
 
 ```powershell
 Copy-Item .env.example .env.local
 ```
 
-Open `.env.local` in VS Code and set these three (get the values from whoever
-set up the project — see the chat / password manager):
+Open `.env.local` in VS Code and set the values. The **required** ones:
 
 ```
-DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-1-us-west-2.pooler.supabase.com:5432/postgres?sslmode=require"
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
-CLERK_SECRET_KEY="sk_test_..."
+DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-1-us-west-2.pooler.supabase.com:6543/postgres?sslmode=require"
+APP_ENCRYPTION_KEY="<32-byte base64 string>"
+AI_PROVIDER="openai-compatible"
+AI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+AI_API_KEY="<your model API key>"
+AI_MODEL="gemini-2.5-flash"
 ```
 
-> **Why the pooler URL?** The direct `db.<ref>.supabase.co` host is IPv6-only and
-> fails on many machines. The `...pooler.supabase.com` URL is IPv4 and works
-> everywhere — keep it.
+See `.env.example` for the full list, optional features, and provider examples
+(OpenAI, Gemini, OpenRouter, Groq, Ollama, Anthropic).
 
-The other keys in the file (AI providers, R2) are optional and not needed to run
-the auth + brand/project features yet.
+**Three things that bite people:**
+
+- **Use the pooler URL, port 6543.** Supabase's direct host
+  (`db.<ref>.supabase.co`) is IPv6-only and times out on most Windows machines.
+  Get the right one from Supabase → **Connect → ORM** (the
+  `...pooler.supabase.com:6543` string). The placeholder password there is
+  `[YOUR-PASSWORD]` — replace it with your real DB password.
+- **`APP_ENCRYPTION_KEY` must be identical on every machine** that shares this
+  database. Provider API keys are encrypted with it; a different key can't
+  decrypt what another machine saved. Generate one only for a brand-new setup:
+  ```powershell
+  node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+  ```
+- **Clerk keys are optional in development.** Left blank, Clerk runs in
+  "keyless" mode and spins up a temporary dev login. To sign in, use any email
+  like `you+clerk_test@example.com` with verification code **`424242`**.
+
+> Editing `.env.local` in VS Code is safe (it saves UTF-8 without a BOM). Avoid
+> creating it with PowerShell `Set-Content -Encoding utf8`, which adds a BOM that
+> can stop the first line from loading.
 
 ---
 
-## 5. (Optional) Sync the database schema
+## 5. Database
 
-The Supabase database is shared, so the tables already exist — you do **not**
-need to recreate them. Only run this if you changed `src/server/db/schema.ts`:
+The Supabase database is **shared**, so all tables already exist — you do **not**
+need to run migrations. Only relevant if you point at a brand-new database:
 
-```powershell
-pnpm db:push
-```
-
-> Drizzle commands need `DATABASE_URL` in the environment. On Windows, the
-> simplest way is to run them through the dev tooling, or set it for the session:
-> `$env:DATABASE_URL = (Get-Content .env.local | Select-String '^DATABASE_URL').ToString().Split('=',2)[1].Trim('"')` then `pnpm db:push`.
+- The schema lives in `src/server/db/schema.ts`. `pnpm db:push` can hit a
+  drizzle-kit introspection bug against an existing DB; the project applies
+  tables with small SQL scripts instead. Ask the maintainer if you're standing
+  up a fresh database.
+- The brand-memory / RAG feature needs the **`pgvector`** extension enabled
+  (Supabase → Database → Extensions → enable `vector`). Optional — memory just
+  no-ops without an embeddings model configured.
 
 ---
 
@@ -118,8 +127,9 @@ pnpm db:push
 pnpm dev
 ```
 
-Open <http://localhost:3000>. You'll be redirected to Clerk sign-in; create an
-account or sign in, then you can create brands and projects.
+Open <http://localhost:3000>. You'll be sent to sign-in — create an account
+(keyless: `you+clerk_test@example.com` + code `424242`), then create a brand,
+a project, and start chatting with the agents.
 
 ---
 
@@ -131,7 +141,6 @@ account or sign in, then you can create brands and projects.
 | `pnpm build`       | Production build (verifies types)     |
 | `pnpm start`       | Run the production build              |
 | `pnpm lint`        | ESLint                                |
-| `pnpm db:push`     | Push schema changes to Postgres       |
 | `pnpm db:studio`   | Open Drizzle Studio (browse the DB)   |
 
 ---
@@ -142,20 +151,29 @@ account or sign in, then you can create brands and projects.
   or `npm install -g pnpm`.
 - **`DATABASE_URL is not set`** — `.env.local` is missing or misnamed. It must be
   exactly `.env.local` in the project root (not `.env` or `.env.local.txt` —
-  Windows may hide the real extension; enable "File name extensions" in Explorer).
-- **DB connection hangs / ENOTFOUND** — make sure you're using the
-  `pooler.supabase.com` URL from step 4, not the `db.<ref>.supabase.co` one.
-- **Clerk error on load** — both `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and
-  `CLERK_SECRET_KEY` must be set; restart `pnpm dev` after editing `.env.local`.
-- **Port 3000 in use** — run `pnpm dev -- -p 3001` and open that port instead.
+  Windows may hide the extension; enable "File name extensions" in Explorer).
+- **`password authentication failed for user "postgres"` (28P01)** — the DB
+  password in `DATABASE_URL` is wrong or was reset on another machine (there's
+  only one DB password). Reset it in Supabase → **Project Settings → Database →
+  Reset database password**, then paste the new value. Supabase's pooler caches
+  credentials, so right after a reset it can keep rejecting for a few seconds —
+  retry, and if it persists, **Restart the project** (Settings → General) to
+  flush the cache.
+- **DB connection hangs / times out (ENOTFOUND/CONNECT_TIMEOUT)** — you're using
+  the `db.<ref>.supabase.co` direct host (IPv6-only). Switch to the
+  `...pooler.supabase.com:6543` URL.
+- **Clerk error on the AI / provider features** — the in-app provider manager
+  needs `APP_ENCRYPTION_KEY`. Set it (and keep it the same across machines).
+- **Port 3000 in use** — `pnpm dev -- -p 3001` and open that port.
 
 ---
 
 ## Working in VS Code
 
 - Open the integrated terminal with `` Ctrl+` `` to run the commands above.
-- The app source is under `src/`. Key folders:
-  - `src/app/` — pages and routes (Next.js App Router)
-  - `src/server/` — database, auth/access checks, server actions
+- Source layout:
+  - `src/app/` — pages, routes, and UI (Next.js App Router)
+  - `src/server/` — database, auth/access checks, AI agents, server actions
+  - `src/lib/` — shared client-safe helpers
 - After pulling new changes (`git pull`), run `pnpm install` in case
   dependencies changed.
