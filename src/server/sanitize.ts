@@ -21,7 +21,7 @@ const OPTIONS: sanitizeHtml.IOptions = {
   ],
   allowedAttributes: {
     a: ["href", "target", "rel"],
-    img: ["src", "alt"],
+    img: ["src", "alt", "width", "height"],
     "*": ["style"],
   },
   allowedStyles: {
@@ -31,6 +31,12 @@ const OPTIONS: sanitizeHtml.IOptions = {
       "font-family": [/^[\w\s,'"()-]+$/],
       "font-size": [/^\d+(\.\d+)?(px|em|rem|pt)$/],
       "text-align": [/^(left|right|center|justify)$/],
+      // Image layout (inline align + text-wrap float) — set by resizable-image.
+      display: [/^(block|inline-block|inline)$/],
+      float: [/^(left|right|none)$/],
+      "margin-left": [/^(auto|0|\d{1,3}px)$/],
+      "margin-right": [/^(auto|0|\d{1,3}px)$/],
+      "margin-bottom": [/^(0|\d{1,3}px)$/],
     },
   },
   // Only safe URL schemes; blocks javascript:/data: in links.

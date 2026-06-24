@@ -5,7 +5,14 @@ import { ensureOrgForUser } from "@/server/orgs";
 import { listProviders } from "@/server/ai/providers";
 import { aiConfigured, modelLabel } from "@/server/ai/models";
 import { setActiveProvider, deleteProvider } from "@/server/ai/manage";
+import { SPECIALISTS } from "@/server/ai/specialists";
 import { AddProviderForm } from "./add-provider-form";
+
+const TIER_LABEL: Record<string, string> = {
+  fast: "fast",
+  default: "balanced",
+  smart: "high-power",
+};
 
 function hostOf(url: string | null): string {
   if (!url) return "";
@@ -117,6 +124,31 @@ export default async function AiDashboard() {
             connection before saving.
           </p>
           <AddProviderForm />
+        </section>
+
+        {/* Agent roster */}
+        <section className="mt-12">
+          <span className="label">Your marketing team</span>
+          <p className="mt-1 mb-4 text-sm text-ink-soft">
+            {Object.keys(SPECIALISTS).length} specialist agents. Just chat in a
+            project — the orchestrator routes each request to the right one, and
+            you’ll see live work in the “agents working” pill.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {Object.values(SPECIALISTS).map((s) => (
+              <div key={s.key} className="card p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-display text-base font-semibold text-ink">
+                    {s.name}
+                  </span>
+                  <span className="badge shrink-0">{TIER_LABEL[s.model] ?? s.model}</span>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+                  {s.blurb}
+                </p>
+              </div>
+            ))}
+          </div>
         </section>
         </main>
       </div>

@@ -8,11 +8,15 @@ import { TextAlign } from "@tiptap/extension-text-align";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Subscript } from "@tiptap/extension-subscript";
 import { Superscript } from "@tiptap/extension-superscript";
+import { ResizableImage } from "./resizable-image";
 import { marked } from "marked";
 import { saveDeliverable } from "@/server/actions";
 import { DELIVERABLE_KINDS } from "@/lib/deliverables";
 import { looksLikeHtml } from "@/lib/deliverable-content";
 import type { DeliverableKind } from "@/server/db/schema";
+import type { AssetMeta } from "@/server/brand-assets";
+import { ImagePicker } from "./image-picker";
+import { DeliverableChat } from "./deliverable-chat";
 
 /**
  * Word-like WYSIWYG editor. You format the rendered document directly (fonts,
@@ -59,7 +63,19 @@ function Btn({
 
 const Sep = () => <span className="mx-1 h-5 w-px bg-line" />;
 
-function Ribbon({ editor }: { editor: Editor }) {
+type LogoOption = { label: string; src: string };
+
+function Ribbon({
+  editor,
+  onImage,
+  logos,
+  onLogo,
+}: {
+  editor: Editor;
+  onImage: () => void;
+  logos: LogoOption[];
+  onLogo: (src: string) => void;
+}) {
   const style = editor.getAttributes("textStyle");
   const curSize = style.fontSize ? String(parseInt(style.fontSize, 10)) : "";
   const isAlign = (a: string) => editor.isActive({ textAlign: a });
@@ -179,6 +195,27 @@ function Ribbon({ editor }: { editor: Editor }) {
       >
         🔗
       </Btn>
+      <Btn title="Insert image" onClick={onImage}>
+        🖼
+      </Btn>
+      {logos.length > 0 && (
+        <select
+          title="Insert brand logo"
+          value=""
+          onChange={(e) => {
+            if (e.target.value) onLogo(e.target.value);
+            e.target.value = "";
+          }}
+          className="input h-8 w-24 px-2 py-0 text-sm"
+        >
+          <option value="">Logo ▾</option>
+          {logos.map((l) => (
+            <option key={l.label} value={l.src}>
+              {l.label}
+            </option>
+          ))}
+        </select>
+      )}
       <Sep />
       <Btn
         title="Clear formatting"
@@ -193,12 +230,18 @@ function Ribbon({ editor }: { editor: Editor }) {
 export function DeliverableEditor({
   deliverableId,
   projectId,
+  brandId,
+  brandImages,
+  brandLogos,
   initialTitle,
   initialKind,
   initialContent,
 }: {
   deliverableId: string;
   projectId: string;
+  brandId: string;
+  brandImages: AssetMeta[];
+  brandLogos: LogoOption[];
   initialTitle: string;
   initialKind: DeliverableKind;
   initialContent: string;
@@ -207,6 +250,8 @@ export function DeliverableEditor({
   const [kind, setKind] = useState<DeliverableKind>(initialKind);
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [refining, setRefining] = useState(false);
   const [refined, setRefined] = useState(false);
   const [refineError, setRefineError] = useState<string | null>(null);
@@ -227,6 +272,7 @@ export function DeliverableEditor({
       Highlight.configure({ multicolor: true }),
       Subscript,
       Superscript,
+      ResizableImage.configure({ allowBase64: true }),
     ],
     content: initialHtml,
     immediatelyRender: false,
@@ -267,6 +313,27 @@ export function DeliverableEditor({
     } finally {
       setRefining(false);
     }
+  }
+
+  // Brand logos may be served URLs (full logos) or already data URLs (icon);
+  // embed as a data URL either way so the document stays self-contained.
+  async function insertLogo(src: string) {
+    if (!editor) return;
+    let dataUrl = src;
+    if (!src.startsWith("data:")) {
+      try {
+        const blob = await (await fetch(src)).blob();
+        dataUrl = await new Promise((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(String(r.result));
+          r.onerror = rej;
+          r.readAsDataURL(blob);
+        });
+      } catch {
+        return;
+      }
+    }
+    editor.chain().focus().setImage({ src: dataUrl }).run();
   }
 
   function save() {
@@ -311,6 +378,13 @@ export function DeliverableEditor({
         </select>
         <button
           type="button"
+          onClick={() => setChatOpen((o) => !o)}
+          className="btn btn-outline shrink-0"
+        >
+          Ask agents ✨
+        </button>
+        <button
+          type="button"
           onClick={refine}
           disabled={refining || pending}
           title="Two AI passes — a critic finds weaknesses, an editor rewrites it stronger"
@@ -332,11 +406,47 @@ export function DeliverableEditor({
       )}
 
       <div className="mt-4">
-        {editor && <Ribbon editor={editor} />}
+        {editor && (
+          <Ribbon
+            editor={editor}
+            onImage={() => setPickerOpen(true)}
+            logos={brandLogos}
+            onLogo={insertLogo}
+          />
+        )}
         <div className="doc-page rounded-t-none px-8 py-8 sm:px-12">
           <EditorContent editor={editor} />
         </div>
       </div>
+
+      {pickerOpen && (
+        <ImagePicker
+          brandId={brandId}
+          images={brandImages}
+          onInsert={(src) => editor?.chain().focus().setImage({ src }).run()}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+
+      {chatOpen && (
+        <div className="fixed inset-y-0 right-0 z-40 flex w-full max-w-sm flex-col border-l border-line bg-surface shadow-lg">
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+            <span className="font-display text-base font-semibold text-ink">
+              Ask the agents
+            </span>
+            <button
+              onClick={() => setChatOpen(false)}
+              className="text-muted hover:text-ink"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="min-h-0 flex-1">
+            <DeliverableChat deliverableId={deliverableId} editor={editor} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

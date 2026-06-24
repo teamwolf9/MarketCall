@@ -15,6 +15,7 @@ import { SPECIALISTS } from "@/server/ai/specialists";
 import { projectTools } from "@/server/ai/tools";
 import { searchBrandMemory } from "@/server/memory";
 import { getIntakeAnswers, formatBriefForPrompt } from "@/server/intake/intake";
+import { getBrandGuide, formatBrandGuideForPrompt } from "@/server/brand-guide";
 import {
   appendMessage,
   canPostToThread,
@@ -72,13 +73,14 @@ export async function POST(req: Request) {
   const specialistKey = await routeToSpecialist(orgId, userText);
   const specialist = SPECIALISTS[specialistKey];
 
-  const [model, label, modelMessages, answers, memHits] = await Promise.all([
+  const [model, label, modelMessages, answers, memHits, guide] = await Promise.all([
     resolveModelForOrg(orgId, specialist.model),
     modelLabelForOrg(orgId, specialist.model),
     convertToModelMessages(messages),
     getIntakeAnswers(ctx.project.id),
     // RAG: pull the brand's most relevant past work for this turn (best-effort).
     searchBrandMemory(ctx.brand.id, userText, 4),
+    getBrandGuide(ctx.brand.id),
   ]);
 
   // Relevant past deliverables for this brand, injected so the assistant has
@@ -111,6 +113,7 @@ export async function POST(req: Request) {
         brandName: ctx.brand.name,
         projectName: ctx.project.name,
         brief: formatBriefForPrompt(answers),
+        brandGuide: formatBrandGuideForPrompt(guide),
       }) +
       memoryBlock +
       toolGuidance,

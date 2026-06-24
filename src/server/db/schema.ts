@@ -11,6 +11,7 @@ import {
   integer,
   vector,
 } from "drizzle-orm/pg-core";
+import type { BrandGuideData } from "@/lib/brand-guide";
 
 /**
  * MarketCall data model — the Org → Brand → Project hierarchy plus memberships.
@@ -65,6 +66,56 @@ export const brands = pgTable(
       .defaultNow(),
   },
   (t) => [unique("brands_org_slug_unique").on(t.orgId, t.slug)],
+);
+
+/**
+ * The brand design system — one per brand. Holds the design tokens (colors,
+ * typography, voice, imagery) that drive on-brand asset exports and AI
+ * generation. Stored as a JSON blob (merged over defaults on read).
+ */
+export const brandGuides = pgTable("brand_guides", {
+  brandId: uuid("brand_id")
+    .primaryKey()
+    .references(() => brands.id, { onDelete: "cascade" }),
+  guide: jsonb("guide").$type<Partial<BrandGuideData>>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * Uploaded brand assets — full logos (horizontal/vertical/reversed), font files,
+ * and brand documents. Bytes are stored base64 in `data` and served through an
+ * access-controlled route (no external storage yet). `variant` names a logo slot
+ * (one per brand+variant); it's null for fonts/documents (many allowed).
+ */
+export const brandAssetKindEnum = pgEnum("brand_asset_kind", [
+  "logo",
+  "font",
+  "document",
+  "image",
+]);
+
+export const brandAssets = pgTable(
+  "brand_assets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    brandId: uuid("brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    kind: brandAssetKindEnum("kind").notNull(),
+    variant: text("variant"),
+    label: text("label").notNull(),
+    fileName: text("file_name").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    data: text("data").notNull(),
+    meta: jsonb("meta").$type<{ fontFamily?: string; format?: string }>(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("brand_assets_brand_idx").on(t.brandId)],
 );
 
 export const projects = pgTable(
@@ -191,6 +242,9 @@ export const aiProviders = pgTable(
 
 export type Org = typeof orgs.$inferSelect;
 export type Brand = typeof brands.$inferSelect;
+export type BrandGuideRow = typeof brandGuides.$inferSelect;
+export type BrandAsset = typeof brandAssets.$inferSelect;
+export type BrandAssetKind = (typeof brandAssetKindEnum.enumValues)[number];
 export type Project = typeof projects.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;
 export type Role = (typeof roleEnum.enumValues)[number];

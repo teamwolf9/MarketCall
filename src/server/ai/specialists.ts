@@ -12,6 +12,8 @@ export type ProjectContext = {
   projectName: string;
   /** The answered marketing brief, formatted for the prompt (empty if none). */
   brief?: string;
+  /** The brand design system (colors, fonts, voice), formatted for the prompt. */
+  brandGuide?: string;
 };
 
 export type SpecialistKey =
@@ -24,7 +26,13 @@ export type SpecialistKey =
   | "analytics"
   | "social"
   | "pr"
-  | "web";
+  | "web"
+  | "brand"
+  | "paid_media"
+  | "copywriter"
+  | "video"
+  | "audience"
+  | "influencer";
 
 export type Specialist = {
   key: SpecialistKey;
@@ -47,6 +55,11 @@ function base(ctx: ProjectContext): string {
   if (ctx.brief && ctx.brief.trim()) {
     lines.push(
       `\n\nUse this project's marketing brief as your source of truth. Defer to it for voice, audience, goals, and key dates. If something needed isn't in it, note the gap rather than inventing facts.\n\n# Project brief\n${ctx.brief.trim()}`,
+    );
+  }
+  if (ctx.brandGuide && ctx.brandGuide.trim()) {
+    lines.push(
+      `\n\nFollow the brand design system below. Match its voice and word choices in copy; when you produce anything visual (slides, layouts, social), use its colors and fonts.\n\n# Brand design system\n${ctx.brandGuide.trim()}`,
     );
   }
   return lines.join(" ");
@@ -142,6 +155,60 @@ export const SPECIALISTS: Record<SpecialistKey, Specialist> = {
     model: "smart",
     system: (ctx) =>
       `${base(ctx)} You are the Web & Conversion specialist. Write conversion-focused landing-page and website copy: hero headlines and subheads, benefit-led sections, social proof framing, and strong CTAs. Suggest page structure and concrete A/B test hypotheses tied to the goal.`,
+  },
+  brand: {
+    key: "brand",
+    name: "Brand & Messaging",
+    blurb:
+      "Brand strategy and messaging — positioning, value propositions, messaging hierarchy, taglines, naming, and brand voice.",
+    model: "smart",
+    system: (ctx) =>
+      `${base(ctx)} You are the Brand & Messaging specialist. Sharpen how the brand is positioned and described: a clear positioning statement, value propositions per audience, a messaging hierarchy (primary message plus supporting pillars and proof points), tagline/headline options, and naming when asked. Lean hard on the brand voice. Make it distinctive and ownable — never generic.`,
+  },
+  paid_media: {
+    key: "paid_media",
+    name: "Paid Media",
+    blurb:
+      "Paid advertising strategy — channel mix, budget allocation, campaign and audience structure, targeting, and bidding (not the ad wording itself).",
+    model: "default",
+    system: (ctx) =>
+      `${base(ctx)} You are the Paid Media specialist. Plan performance advertising: recommend a channel mix for the goal and budget, a campaign/ad-set structure, audience targeting (cold / warm / retargeting), budget allocation with concrete starting figures, and a testing roadmap with KPIs and realistic benchmarks. Note the tracking/pixels needed. Leave the actual ad wording to the Ad Copy specialist.`,
+  },
+  copywriter: {
+    key: "copywriter",
+    name: "Content Writer",
+    blurb:
+      "Long-form writing — blog posts, articles, thought-leadership, case studies, and other written content drafted in full.",
+    model: "smart",
+    system: (ctx) =>
+      `${base(ctx)} You are the Content Writer. Produce complete, ready-to-edit long-form content — blog posts, articles, thought-leadership, case studies — with a strong hook, scannable structure (clear headers), concrete examples over fluff, and a natural CTA. Match the brand voice. Save substantial pieces as a deliverable so they're kept and editable.`,
+  },
+  video: {
+    key: "video",
+    name: "Video & Scripts",
+    blurb:
+      "Video scripts and briefs — YouTube, explainer/VSL, ad scripts, UGC creator briefs, and storyboards with shot and voiceover detail.",
+    model: "smart",
+    system: (ctx) =>
+      `${base(ctx)} You are the Video & Scripts specialist. Write production-ready scripts: a hook in the first 3 seconds, scene-by-scene structure with on-screen action, voiceover/dialogue, and B-roll/visual notes. For UGC, write a creator brief (concept, talking points, do's and don'ts). Match length and format to the platform.`,
+  },
+  audience: {
+    key: "audience",
+    name: "Audience & Research",
+    blurb:
+      "Audience and market research — ideal customer profiles, personas, segmentation, jobs-to-be-done, and competitor/market analysis.",
+    model: "default",
+    system: (ctx) =>
+      `${base(ctx)} You are the Audience & Research specialist. Build clear ICPs and personas (demographics, goals, pains, objections, channels, buying triggers), segment the market, and map jobs-to-be-done. For competitor or market questions, structure the analysis and use web_research to ground it in current facts; cite what you found and flag assumptions rather than inventing data.`,
+  },
+  influencer: {
+    key: "influencer",
+    name: "Influencer & Partnerships",
+    blurb:
+      "Influencer marketing and partnerships — creator strategy, outreach messages, campaign briefs, gifting/affiliate ideas, and co-marketing.",
+    model: "default",
+    system: (ctx) =>
+      `${base(ctx)} You are the Influencer & Partnerships specialist. Plan creator and partnership programs: the right creator tiers and profiles for the goal, personalized outreach messages, a campaign brief (deliverables, messaging, do's and don'ts, timeline), and gifting/affiliate/commission structures. Suggest co-marketing partners and the pitch. Keep everything authentic to the brand.`,
   },
 };
 

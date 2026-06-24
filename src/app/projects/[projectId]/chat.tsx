@@ -232,8 +232,12 @@ export function Chat({
         })}
         {busy && messages[messages.length - 1]?.role === "user" && (
           <div className="flex justify-start">
-            <div className="rounded-2xl rounded-bl-md bg-surface-2 px-4 py-2.5 text-sm text-muted">
-              Thinking…
+            <div className="flex items-center gap-2 rounded-2xl rounded-bl-md bg-surface-2 px-4 py-2.5 text-sm text-muted">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+              </span>
+              Routing to the right specialist…
             </div>
           </div>
         )}

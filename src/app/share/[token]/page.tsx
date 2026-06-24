@@ -39,7 +39,7 @@ export default async function SharedDeliverablePage({
             <ShareActions
               title={deliverable.title}
               content={deliverable.content}
-              brandName={deliverable.brandName}
+              tokens={deliverable.tokens}
             />
           </div>
         </header>

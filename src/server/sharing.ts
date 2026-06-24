@@ -11,6 +11,8 @@ import {
   type DeliverableKind,
 } from "@/server/db/schema";
 import { projectRole, roleAtLeast } from "@/server/auth/access";
+import { getBrandGuide } from "@/server/brand-guide";
+import { toExportTokens, type ExportTokens } from "@/lib/brand-guide";
 
 /**
  * Public share links. Two audiences:
@@ -93,6 +95,7 @@ export type PublicDeliverable = {
   content: string;
   kind: DeliverableKind;
   brandName: string;
+  tokens?: ExportTokens;
 };
 
 /**
@@ -121,7 +124,7 @@ export async function resolvePublicDeliverable(
   const brand = project
     ? await db.query.brands.findFirst({
         where: eq(brands.id, project.brandId),
-        columns: { name: true },
+        columns: { id: true, name: true, logoUrl: true },
       })
     : null;
 
@@ -130,5 +133,8 @@ export async function resolvePublicDeliverable(
     content: deliverable.content,
     kind: deliverable.kind,
     brandName: brand?.name ?? "",
+    tokens: brand
+      ? toExportTokens(await getBrandGuide(brand.id), brand.name, brand.logoUrl)
+      : undefined,
   };
 }

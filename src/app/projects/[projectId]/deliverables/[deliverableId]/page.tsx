@@ -4,6 +4,9 @@ import { auth } from "@clerk/nextjs/server";
 import { getDeliverableForUser } from "@/server/deliverables";
 import { listShareLinks, isLinkLive } from "@/server/sharing";
 import { getIntakeAnswers, intakeStats } from "@/server/intake/intake";
+import { getBrandGuide } from "@/server/brand-guide";
+import { listBrandAssets } from "@/server/brand-assets";
+import { toExportTokens } from "@/lib/brand-guide";
 import { roleAtLeast } from "@/server/auth/access";
 import { removeDeliverable } from "@/server/actions";
 import { kindLabel } from "@/lib/deliverables";
@@ -28,6 +31,27 @@ export default async function DeliverablePage({
   const { project, brand, role } = ctx;
   const canEdit = roleAtLeast(role, "editor");
   const briefPct = intakeStats(await getIntakeAnswers(projectId)).pct;
+  const tokens = toExportTokens(
+    await getBrandGuide(brand.id),
+    brand.name,
+    brand.logoUrl,
+  );
+  const assets = canEdit ? await listBrandAssets(brand.id) : [];
+  const brandImages = assets.filter((a) => a.kind === "image");
+  const LOGO_LABELS: Record<string, string> = {
+    horizontal: "Horizontal",
+    vertical: "Vertical",
+    reversed: "Reversed",
+  };
+  const brandLogos = [
+    ...(brand.logoUrl ? [{ label: "Icon", src: brand.logoUrl }] : []),
+    ...assets
+      .filter((a) => a.kind === "logo")
+      .map((a) => ({
+        label: LOGO_LABELS[a.variant ?? ""] ?? a.variant ?? "Logo",
+        src: `/api/brand-assets/${a.id}`,
+      })),
+  ];
 
   // Editors manage public links; show only the live ones (revoked/expired hidden).
   const liveLinks = canEdit
@@ -58,7 +82,7 @@ export default async function DeliverablePage({
           <ShareActions
             title={deliverable.title}
             content={deliverable.content}
-            brandName={brand.name}
+            tokens={tokens}
           />
         </div>
 
@@ -67,6 +91,9 @@ export default async function DeliverablePage({
             <DeliverableEditor
               deliverableId={deliverable.id}
               projectId={project.id}
+              brandId={brand.id}
+              brandImages={brandImages}
+              brandLogos={brandLogos}
               initialTitle={deliverable.title}
               initialKind={deliverable.kind}
               initialContent={deliverable.content}

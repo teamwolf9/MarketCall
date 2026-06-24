@@ -1,8 +1,12 @@
 import "server-only";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/server/db";
-import { jobs, type Job } from "@/server/db/schema";
-import { projectRole, roleAtLeast } from "@/server/auth/access";
+import { jobs, projects, brands, type Job } from "@/server/db/schema";
+import {
+  projectRole,
+  roleAtLeast,
+  reachableProjectIds,
+} from "@/server/auth/access";
 
 /**
  * Durable jobs API. Two layers:
@@ -46,6 +50,46 @@ export async function listJobsForUser(
     .select()
     .from(jobs)
     .where(eq(jobs.projectId, projectId))
+    .orderBy(desc(jobs.createdAt));
+}
+
+export type ActiveJob = {
+  id: string;
+  kind: string;
+  goal: string;
+  step: string | null;
+  progress: number;
+  projectId: string;
+  projectName: string;
+  brandName: string;
+};
+
+/** Every in-flight job across the user's reachable projects — for the live widget. */
+export async function listActiveJobsForUser(
+  userId: string,
+): Promise<ActiveJob[]> {
+  const ids = await reachableProjectIds(userId);
+  if (ids.length === 0) return [];
+  return db
+    .select({
+      id: jobs.id,
+      kind: jobs.kind,
+      goal: jobs.goal,
+      step: jobs.step,
+      progress: jobs.progress,
+      projectId: jobs.projectId,
+      projectName: projects.name,
+      brandName: brands.name,
+    })
+    .from(jobs)
+    .innerJoin(projects, eq(jobs.projectId, projects.id))
+    .innerJoin(brands, eq(projects.brandId, brands.id))
+    .where(
+      and(
+        inArray(jobs.projectId, ids),
+        inArray(jobs.status, ["queued", "running"]),
+      ),
+    )
     .orderBy(desc(jobs.createdAt));
 }
 

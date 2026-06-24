@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Hanken_Grotesk, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { PwaRegister } from "@/app/_components/pwa-register";
+import { AgentActivity } from "@/app/_components/agent-activity";
 import "./globals.css";
 
 // Display: an optical serif with warmth — the wordmark + headings.
@@ -66,6 +67,7 @@ export default function RootLayout({
         {/* App shell: the viewport never scrolls — inner panels do. */}
         <body className="flex h-full flex-col overflow-hidden">
           {children}
+          <AgentActivity />
           <PwaRegister />
         </body>
       </html>

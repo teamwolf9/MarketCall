@@ -16,7 +16,6 @@ import { roleAtLeast } from "@/server/auth/access";
 import { projectColor } from "@/lib/colors";
 import { shortDate, timeLabel } from "@/lib/dates";
 import { BrandLogo } from "@/app/_components/brand-logo";
-import { BrandLogoUploader } from "./brand-logo-uploader";
 
 export default async function BrandPage({
   params,
@@ -70,18 +69,23 @@ export default async function BrandPage({
           Projects under this brand. Open one to work with the assistant.
         </p>
 
-        {canManage && (
-          <div className="mt-6">
-            <span className="label">Brand logo</span>
-            <div className="mt-3">
-              <BrandLogoUploader
-                brandId={brand.id}
-                name={brand.name}
-                logoUrl={brand.logoUrl}
-              />
+        <Link
+          href={`/brands/${brand.id}/guide`}
+          className="group mt-6 flex items-center justify-between gap-4 rounded-2xl border border-line bg-surface p-5 transition-shadow hover:shadow-md"
+        >
+          <div>
+            <div className="font-display text-lg font-semibold text-ink">
+              Brand guide
             </div>
+            <p className="mt-0.5 text-sm text-ink-soft">
+              Colors, fonts, logo, and voice — the design system every asset uses.
+            </p>
           </div>
-        )}
+          <span className="inline-flex items-center gap-1 text-sm text-accent">
+            Open
+            <span className="transition-transform group-hover:translate-x-0.5">→</span>
+          </span>
+        </Link>
 
         {/* Projects */}
         <section className="mt-10">
